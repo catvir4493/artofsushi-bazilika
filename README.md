@@ -19,9 +19,20 @@ rögzített hero-jelenet, sima görgetés, görgetésre kitöltődő szöveg, v�
 egyedi kurzor, teljes képernyős menü és függönyös lábléc. A rendszer "csökkentett mozgás" beállításánál ezek kikapcsolnak.
 
 ## Fotók
-Az oldal először az `images/` mappában keresi a képeket; ha nincsenek ott,
-automatikusan a régi oldal (artofsushi.hu/istvan) szerveréről tölti be őket.
-Élesítés előtt futtasd a `download-images.ps1`-t, hogy a képek helyben legyenek.
+Az `images/` mappában lévő képek **ideiglenes helyettesítők** a fő oldalról (artofsushi.hu, `wp-content/uploads/2025/02/`),
+mert a régi oldal (artofsushi.hu/istvan) képei már nem elérhetők (404). A `download-images.ps1` ugyanezt a hozzárendelést tölti le újra.
+
+| Fájl az `images/`-ben | Forrás (2025/02) | Hol látszik |
+|---|---|---|
+| ART02955.jpg | SS-4.jpg | hero, Szásimi |
+| ART02966.jpg | SS-5.jpg | Sushi |
+| ART02977.jpg | SS-15.jpg | Előétel |
+| ART02988.jpg | SS-3.jpg | Wok |
+| ART02922.jpg | SS-1.jpg | Séf ajánlata 1 |
+| ART02933.jpg | SS-13.jpg | Séf ajánlata 2 |
+| 1-3.jpg, 1-4.jpg | SS-22.jpg, SS-23.jpg | Rólunk |
+| 2-1.jpg … 2-8.jpg | SS-6, SS-10, SS-24, SS-5, SS-23, SS-15, SS-1, SS-13 | Galéria |
+
 Saját fotó cseréjéhez: tedd be ugyanazzal a fájlnévvel az `images/` mappába.
 
 ## Foglalási űrlap
