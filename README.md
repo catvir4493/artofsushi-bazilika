@@ -7,7 +7,8 @@ Tervezett domain: **artofsushi-bazilika.hu**
 Dupla klikk az `index.html`-re – böngészőben azonnal működik.
 
 ## Fájlok
-- `index.html` – az oldal tartalma (magyar)
+- `index.html` – kezdőlap: üzletválasztó (Bazilika / Liszt Ferenc tér), `css/entry.css`, `js/entry.js`
+- `bazilika.html` – a Bazilika üzlet oldala (magyar)
 - `css/style.css` – stílus (színek a fájl elején, `:root`)
 - `js/main.js` – animációk, nyitvatartás-jelző, galéria, foglalási űrlap
 - `images/` – fotók helye
