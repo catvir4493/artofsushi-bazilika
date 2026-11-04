@@ -4,11 +4,13 @@
 
   /* ===== Beállítások =====
      A foglalási űrlap így küld (az első kitöltött opció érvényes):
-     1) FORM_ENDPOINT: pl. Formspree / saját szerver URL (JSON POST)
+     1) FORM_ENDPOINT: a Google Apps Script webalkalmazás URL-je (…/exec), lásd apps-script/README.md
      2) BOOKING_EMAIL: e-mail cím → megnyitja a levelezőt kitöltött levéllel
-     3) egyik sem: megköszöni és telefonos megerősítést kér */
+     3) egyik sem: megköszöni és telefonos megerősítést kér
+     TURNSTILE_SITEKEY: Cloudflare Turnstile nyilvános kulcs (opcionális, spam ellen) */
   const CONFIG = {
     FORM_ENDPOINT: '',
+    TURNSTILE_SITEKEY: '',
     BOOKING_EMAIL: '',
     PHONE: '+36 30 516 1606',
     OPEN_HOUR: 12,
@@ -568,6 +570,14 @@
     guests = Math.min(30, Math.max(1, guests + +b.dataset.step));
     guestsOut.textContent = guests;
   }));
+  if (CONFIG.TURNSTILE_SITEKEY) {
+    const box = document.createElement('div');
+    box.className = 'cf-turnstile'; box.dataset.sitekey = CONFIG.TURNSTILE_SITEKEY; box.dataset.theme = 'dark';
+    $('.check', form).after(box);
+    const sc = document.createElement('script');
+    sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; sc.async = true; sc.defer = true;
+    document.head.appendChild(sc);
+  }
   form.addEventListener('submit', async e => {
     e.preventDefault();
     msg.className = 'form-msg'; msg.textContent = '';
@@ -590,11 +600,17 @@ Egyéb kérés: ${data.note || '-'}
 Nyelv: ${T('langName')}`;
     try {
       if (CONFIG.FORM_ENDPOINT) {
+        // text/plain: így a böngésző nem küld előzetes CORS-kérést az Apps Scriptnek
         const res = await fetch(CONFIG.FORM_ENDPOINT, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ ...data, _subject: 'Asztalfoglalás – Bazilika', message: summary })
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            name: data.name, email: data.email, phone: data.phone, date: data.date, time: data.time,
+            guests, note: data.note || '', lang: window.AOS_I18N ? AOS_I18N.lang : 'hu',
+            website: data.website || '', turnstile: data['cf-turnstile-response'] || ''
+          })
         });
-        if (!res.ok) throw new Error(res.status);
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || !out.ok) throw new Error(out.error || res.status);
       } else if (CONFIG.BOOKING_EMAIL) {
         location.href = `mailto:${CONFIG.BOOKING_EMAIL}?subject=${encodeURIComponent('Asztalfoglalás – Bazilika')}&body=${encodeURIComponent(summary)}`;
       }
@@ -603,6 +619,7 @@ Nyelv: ${T('langName')}`;
         ? T('sent', data.name, data.date, data.time, guests, CONFIG.PHONE)
         : T('call', data.name, data.date, data.time, guests, CONFIG.PHONE);
       form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00';
+      if (window.turnstile) try { turnstile.reset(); } catch {}
     } catch (err) {
       msg.classList.add('err');
       msg.textContent = T('fail', CONFIG.PHONE);

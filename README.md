@@ -1,7 +1,7 @@
 # Art of Sushi Bazilika – weboldal
 
 Statikus weboldal (HTML + CSS + JS, nincs build lépés) az új üzlethez: **Sas u. 4, 1051 Budapest**.
-Tervezett domain: **artofsushi-bazilika.hu**
+Tervezett domain: **artofsushibp.hu**
 
 ## Megnyitás
 Dupla klikk az `index.html`-re – böngészőben azonnal működik.
