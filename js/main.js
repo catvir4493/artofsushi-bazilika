@@ -648,5 +648,13 @@ Nyelv: ${T('langName')}`;
     menuBtn.setAttribute('aria-label', T(body.classList.contains('menu-open') ? 'menuClose' : 'menuOpen'));
   });
 
+  /* ----- Térkép: csak kattintásra (GDPR) ----- */
+  const mapBox = $('.map-consent');
+  if (mapBox) $('.map-consent__load', mapBox).addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.title = 'Art of Sushi Bazilika'; f.referrerPolicy = 'no-referrer-when-downgrade'; f.src = mapBox.dataset.src;
+    mapBox.replaceWith(f);
+  });
+
   $('#year').textContent = new Date().getFullYear();
 })();

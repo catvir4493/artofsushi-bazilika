@@ -109,6 +109,10 @@
     'Találkozzunk': 'See you',
     'a Bazilikánál.': 'at the Basilica.',
     'Adatkezelési tájékoztató': 'Privacy policy',
+    'Impresszum': 'Legal notice',
+    'Térkép betöltése': 'Load map',
+    'A térkép a Google Maps szolgáltatásból töltődik be.': 'The map is loaded from Google Maps.',
+    'Megnyitás a Google Térképen ↗': 'Open in Google Maps ↗',
     'Vissza a tetejére ↑': 'Back to top ↑',
     'A weboldalon a minőségi felhasználói élmény érdekében sütiket használunk.': 'We use cookies to give you the best possible experience on our website.',
     'Elfogad': 'Accept'

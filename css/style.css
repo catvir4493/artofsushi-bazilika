@@ -365,6 +365,10 @@ html:not(.js) .clip img{clip-path:none;transform:none}
 .contact__sister a{color:var(--text-2)}
 .contact__map{position:relative;min-height:480px;background:var(--bg-3);border:1px solid var(--line)}
 .contact__map::before{content:"";position:absolute;inset:10px;border:1px solid var(--line-soft);pointer-events:none;z-index:1}
+.map-consent{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;text-align:center;z-index:2}
+.map-consent__addr{margin:0;font:300 clamp(26px,3vw,38px)/1.2 var(--f-display);color:var(--text)}
+.map-consent__note{margin:0;font-size:12px;color:var(--muted)}
+.map-consent__link{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);text-decoration:none}
 .contact__map iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:grayscale(1) invert(.9) contrast(.9) brightness(.85) sepia(.15)}
 
 /* ---------- Lábléc (függöny) ---------- */

@@ -112,6 +112,11 @@ em{font-style:italic;font-weight:300;color:var(--gold)}
 .ready .entry-lang{opacity:1}
 .settled .entry-lang{transition-delay:0s}
 .leaving .entry-lang{opacity:0;transition:opacity .4s}
+.entry-legal{position:fixed;z-index:30;left:var(--pad);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:18px;font:400 10px var(--f-body);letter-spacing:.22em;text-transform:uppercase;opacity:0;transition:opacity 1.2s var(--ease) 2s}
+.entry-legal a{color:rgba(237,230,217,.55);text-decoration:none}
+.entry-legal a:hover,.entry-legal a:focus-visible{color:var(--gold)}
+.ready .entry-legal{opacity:1}
+.leaving .entry-legal{opacity:0;transition:opacity .4s}
 .lang-fade .shop__inner{transition:opacity .34s var(--ease)}
 .lang-out .shop__inner{opacity:0}
 
