@@ -160,7 +160,7 @@ section{position:relative;padding:clamp(110px,14vw,220px) var(--pad)}
 .reveal-up.in{opacity:1;transform:none}
 html:not(.js) .reveal-up{opacity:1;transform:none}
 .clip{overflow:hidden;margin:0;position:relative}
-.clip img{width:100%;height:100%;object-fit:cover;clip-path:inset(100% 0 0 0);transform:scale(1.22);transition:clip-path 1.25s cubic-bezier(.3,0,.15,1),transform 2s var(--ease)}
+.clip img{width:100%;height:100%;object-fit:cover;clip-path:inset(100% 0 0 0);transform:scale(1.22);transition:clip-path 1s cubic-bezier(.3,0,.15,1),transform 1.6s var(--ease)}
 .clip.in img{clip-path:inset(0 0 0 0);transform:scale(1.08)}
 html:not(.js) .clip img{clip-path:none;transform:none}
 [data-speed]{will-change:transform}

@@ -95,7 +95,7 @@
   const t0 = performance.now();
   body.classList.add('is-locked');
 
-  const critical = [heroImg, ...$$('.about img')];
+  const critical = [heroImg, ...$$('.about img'), ...$$('.feature__img img')];
   let loadedCount = 0;
   const bump = () => { loadedCount++; loadTarget = loadedCount / critical.length; };
   critical.forEach(img => {
@@ -180,7 +180,7 @@
   // a képek már akkor nyíljanak, amikor a széle beér a képernyőre
   const ioClip = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); ioClip.unobserve(e.target); } });
-  }, { threshold: 0, rootMargin: '0px 0px -4% 0px' });
+  }, { threshold: 0, rootMargin: '0px 0px 25% 0px' });
   $$('.clip').forEach(el => ioClip.observe(el));
 
   function countUp(el) {
