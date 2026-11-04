@@ -14,7 +14,7 @@
     return isClose && x <= hourOf(document.documentElement.dataset.open || '12:00') ? x + 24 : x;
   }
   const CONFIG = {
-    FORM_ENDPOINT: '',
+    FORM_ENDPOINT: 'https://script.google.com/macros/s/AKfycbw9nIfru4UdiiONJ1XsQJ1xwW3wbNpZKvkx-0-eNhykKTWx2B0d_-Fsc4Gi-_ceLVKsQw/exec',
     TURNSTILE_SITEKEY: '',
     BOOKING_EMAIL: '',
     // nyitvatartás és telefon: a build a <html> elemre írja (content/info.json)
