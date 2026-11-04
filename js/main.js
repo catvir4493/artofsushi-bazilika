@@ -16,6 +16,8 @@
     TZ: 'Europe/Budapest'
   };
 
+  // nyelvfüggő szövegek (js/i18n.js)
+  const T = (k, ...a) => window.AOS_I18N ? AOS_I18N.s(k, ...a) : k;
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -135,19 +137,19 @@
   /* =========================================================
      Szövegbontás
      ========================================================= */
-  $$('.split').forEach(el => {
+  const splitEl = el => {
     const txt = el.textContent.trim();
     el.setAttribute('aria-label', txt);
     el.innerHTML = txt.split(/\s+/).map(w =>
       `<span class="w" aria-hidden="true">${[...w].map(c => `<span class="ch">${c}</span>`).join('')}</span>`).join(' ');
     $$('.ch', el).forEach((c, i) => c.style.transitionDelay = `${i * 24}ms`);
-  });
+  };
+  $$('.split').forEach(splitEl);
 
   // görgetésre kitöltődő mondat
   const fill = $('[data-fill]');
   let fillWords = [];
-  if (fill) {
-    const wrap = node => {
+  const wrap = node => {
       [...node.childNodes].forEach(n => {
         if (n.nodeType === 3) {
           const frag = document.createDocumentFragment();
@@ -160,9 +162,7 @@
         } else if (n.nodeType === 1) wrap(n);
       });
     };
-    wrap(fill);
-    fillWords = $$('.sw', fill);
-  }
+  if (fill) { wrap(fill); fillWords = $$('.sw', fill); }
 
   /* =========================================================
      Megjelenés görgetésre (IntersectionObserver)
@@ -414,7 +414,7 @@
     body.classList.toggle('menu-open', open);
     body.classList.toggle('is-locked', open);
     menuBtn.setAttribute('aria-expanded', open);
-    menuBtn.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
+    menuBtn.setAttribute('aria-label', T(open ? 'menuClose' : 'menuOpen'));
     overlay.setAttribute('aria-hidden', !open);
     nav.classList.remove('is-hidden');
   }
@@ -438,8 +438,8 @@
     const now = budapestHour();
     const open = now >= CONFIG.OPEN_HOUR && now < CONFIG.CLOSE_HOUR;
     $$('.live-dot').forEach(d => d.classList.toggle('is-open', open));
-    $$('.live-text').forEach(t => t.textContent = open ? 'Most nyitva · 00:00-ig' : 'Most zárva · nyitás 12:00-kor');
-    $$('.status-pill').forEach(p => { p.textContent = open ? '● Most nyitva' : '● Most zárva'; p.classList.toggle('is-open', open); });
+    $$('.live-text').forEach(t => t.textContent = T(open ? 'open' : 'closed'));
+    $$('.status-pill').forEach(p => { p.textContent = T(open ? 'pillOpen' : 'pillClosed'); p.classList.toggle('is-open', open); });
   }
   updateStatus(); setInterval(updateStatus, 60000);
 
@@ -572,7 +572,7 @@
       inp.closest('.field')?.classList.toggle('invalid', !valid);
       if (!valid) ok = false;
     });
-    if (!ok) { msg.classList.add('err'); msg.textContent = 'Kérjük, töltse ki a kötelező (*) mezőket, és fogadja el a tájékoztatót.'; return; }
+    if (!ok) { msg.classList.add('err'); msg.textContent = T('formErr'); return; }
     const data = Object.fromEntries(new FormData(form));
     data.guests = guests;
     const summary = `Asztalfoglalás – Art of Sushi Bazilika
@@ -581,7 +581,8 @@ Email: ${data.email}
 Telefon: ${data.phone}
 Dátum: ${data.date} ${data.time}
 Létszám: ${data.guests} fő
-Egyéb kérés: ${data.note || '-'}`;
+Egyéb kérés: ${data.note || '-'}
+Nyelv: ${T('langName')}`;
     try {
       if (CONFIG.FORM_ENDPOINT) {
         const res = await fetch(CONFIG.FORM_ENDPOINT, {
@@ -594,12 +595,12 @@ Egyéb kérés: ${data.note || '-'}`;
       }
       msg.classList.add('ok');
       msg.textContent = (CONFIG.FORM_ENDPOINT || CONFIG.BOOKING_EMAIL)
-        ? `Köszönjük, ${data.name}! Foglalási kérését (${data.date}, ${data.time}, ${guests} fő) elküldtük – hamarosan visszaigazoljuk. Sürgős esetben hívjon: ${CONFIG.PHONE}.`
-        : `Köszönjük, ${data.name}! A foglalás (${data.date}, ${data.time}, ${guests} fő) véglegesítéséhez kérjük, hívjon minket: ${CONFIG.PHONE}.`;
+        ? T('sent', data.name, data.date, data.time, guests, CONFIG.PHONE)
+        : T('call', data.name, data.date, data.time, guests, CONFIG.PHONE);
       form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00';
     } catch (err) {
       msg.classList.add('err');
-      msg.textContent = `Hiba történt a küldéskor. Kérjük, foglaljon telefonon: ${CONFIG.PHONE}.`;
+      msg.textContent = T('fail', CONFIG.PHONE);
     }
   });
 
@@ -613,6 +614,16 @@ Egyéb kérés: ${data.note || '-'}`;
   $('button', cookie).addEventListener('click', () => {
     cookie.hidden = true;
     try { localStorage.setItem('aos-cookie', '1'); } catch {}
+  });
+
+  /* ----- Nyelvváltás: a bontott szövegek újraépítése ----- */
+  document.addEventListener('aos:lang', () => {
+    $$('.split').forEach(splitEl);
+    if (fill) { wrap(fill); fillWords = $$('.sw', fill); }
+    updateStatus();
+    const heads = $$('.dish h3');
+    $$('.carousel__dots button').forEach((d, i) => heads[i] && d.setAttribute('aria-label', heads[i].textContent));
+    menuBtn.setAttribute('aria-label', T(body.classList.contains('menu-open') ? 'menuClose' : 'menuOpen'));
   });
 
   $('#year').textContent = new Date().getFullYear();

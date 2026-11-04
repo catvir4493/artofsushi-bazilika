@@ -8,7 +8,8 @@ Dupla klikk az `index.html`-re – böngészőben azonnal működik.
 
 ## Fájlok
 - `index.html` – kezdőlap: üzletválasztó (Bazilika / Liszt Ferenc tér), `css/entry.css`, `js/entry.js`
-- `bazilika.html` – a Bazilika üzlet oldala (magyar)
+- `bazilika.html` – a Bazilika üzlet oldala (magyar / angol)
+- `js/i18n.js` – nyelvváltás (HU / EN): a magyar szöveg mellé itt kell felvenni az angol párját. A választás megmarad; első látogatáskor nem magyar nyelvű böngészőben angolul nyílik. `?lang=en` / `?lang=hu` a linkben is működik.
 - `css/style.css` – stílus (színek a fájl elején, `:root`)
 - `js/main.js` – animációk, nyitvatartás-jelző, galéria, foglalási űrlap
 - `images/` – fotók helye
