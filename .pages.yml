@@ -1,0 +1,110 @@
+# Pages CMS 后台配置（https://app.pagescms.org）
+# 每个栏目对应 content/ 里的一个 JSON 文件；保存后 Cloudflare Pages 自动重新构建网站（约 1 分钟）。
+# 修改这里的字段，要同时改 bazilika.html 里的 data-cms 标记和 scripts/build.mjs。
+
+media:
+  input: images
+  output: images
+  categories: [image]
+
+components:
+  bi:
+    type: object
+    fields:
+      - { name: hu, label: 匈牙利语, type: string, required: true }
+      - { name: en, label: 英语, type: string }
+  bitext:
+    type: object
+    fields:
+      - { name: hu, label: 匈牙利语, type: text, required: true }
+      - { name: en, label: 英语, type: text }
+
+content:
+  - name: info
+    label: 营业信息
+    type: file
+    path: content/info.json
+    format: json
+    fields:
+      - { name: phone, label: 电话, type: string, required: true, description: "例如 +36 30 516 1606" }
+      - { name: days, label: 营业日, component: bi, description: "例如 Hétfő – Vasárnap / Monday – Sunday" }
+      - { name: open, label: 开门时间, type: string, required: true, description: "24 小时制，例如 12:00" }
+      - { name: close, label: 关门时间, type: string, required: true, description: "例如 00:00（午夜）或 23:00" }
+      - { name: facebook, label: Facebook 链接, type: string }
+      - { name: instagram, label: Instagram 链接, type: string }
+      - { name: tiktok, label: TikTok 链接, type: string }
+
+  - name: prices
+    label: 价格
+    type: file
+    path: content/prices.json
+    format: json
+    fields:
+      - { name: adult, label: 成人价（Ft）, type: number, required: true }
+      - { name: child, label: 儿童价 1–1.4 m（Ft）, type: number, required: true }
+      - { name: duration, label: 用餐时长（小时）, type: number, required: true }
+      - { name: service, label: 服务费（%）, type: number, required: true }
+      - { name: drinks, label: 饮料和甜点说明, component: bitext }
+
+  - name: notice
+    label: 公告
+    type: file
+    path: content/notice.json
+    format: json
+    fields:
+      - { name: show, label: 显示公告, type: boolean, description: "打开后，网站底部会显示这条公告" }
+      - { name: from, label: 开始日期, type: date, default: "", options: { format: yyyy-MM-dd }, description: "留空表示马上开始" }
+      - { name: to, label: 结束日期, type: date, default: "", options: { format: yyyy-MM-dd }, description: "这天之后自动隐藏；留空表示一直显示" }
+      - { name: text, label: 公告内容, component: bi }
+
+  - name: menu
+    label: 菜单与主厨推荐
+    type: file
+    path: content/menu.json
+    format: json
+    fields:
+      - name: categories
+        label: 菜单分类（轮播）
+        type: object
+        list: { min: 1, max: 8, collapsible: { collapsed: true, summary: "{index}" } }
+        fields:
+          - { name: name, label: 名称, component: bi }
+          - { name: jp, label: 日文小字, type: string, description: "例如 寿司；新的日文字请告诉 Marcell，以便加进字体" }
+          - { name: text, label: 介绍, component: bitext }
+          - { name: image, label: 照片, type: image }
+      - name: chef
+        label: 主厨推荐
+        type: object
+        list: { min: 1, max: 4, collapsible: { collapsed: true, summary: "{index}" } }
+        fields:
+          - { name: name, label: 菜名, component: bi }
+          - { name: jp, label: 日文小字, type: string }
+          - { name: text, label: 介绍, component: bitext }
+          - { name: image, label: 照片, type: image }
+
+  - name: gallery
+    label: 画廊照片
+    type: file
+    path: content/gallery.json
+    format: json
+    fields:
+      - name: images
+        label: 照片
+        type: object
+        list: { min: 3, max: 24, collapsible: { collapsed: true, summary: "{index}" } }
+        fields:
+          - { name: image, label: 照片, type: image, required: true }
+
+  - name: texts
+    label: 介绍文字
+    type: file
+    path: content/texts.json
+    format: json
+    fields:
+      - { name: statement, label: 大字标语, component: bitext, description: "用 *星号* 包住的文字会显示为金色斜体" }
+      - { name: about_title, label: 关于我们 · 标题, component: bi }
+      - { name: about_1, label: 关于我们 · 第一段, component: bitext }
+      - { name: about_2, label: 关于我们 · 第二段, component: bitext }
+      - { name: menu_lead, label: 菜单 · 导语, component: bitext }
+      - { name: chef_lead, label: 主厨推荐 · 导语, component: bitext }
+      - { name: booking_lead, label: 订桌 · 导语, component: bitext }

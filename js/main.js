@@ -4,15 +4,23 @@
 
   /* ===== Beállítások =====
      A foglalási űrlap így küld (az első kitöltött opció érvényes):
-     1) FORM_ENDPOINT: pl. Formspree / saját szerver URL (JSON POST)
+     1) FORM_ENDPOINT: a Google Apps Script webalkalmazás URL-je (…/exec), lásd apps-script/README.md
      2) BOOKING_EMAIL: e-mail cím → megnyitja a levelezőt kitöltött levéllel
-     3) egyik sem: megköszöni és telefonos megerősítést kér */
+     3) egyik sem: megköszöni és telefonos megerősítést kér
+     TURNSTILE_SITEKEY: Cloudflare Turnstile nyilvános kulcs (opcionális, spam ellen) */
+  function hourOf(v, isClose) {
+    const [h, m] = v.split(':').map(Number);
+    const x = h + (m || 0) / 60;
+    return isClose && x <= hourOf(document.documentElement.dataset.open || '12:00') ? x + 24 : x;
+  }
   const CONFIG = {
     FORM_ENDPOINT: '',
+    TURNSTILE_SITEKEY: '',
     BOOKING_EMAIL: '',
-    PHONE: '+36 30 516 1606',
-    OPEN_HOUR: 12,
-    CLOSE_HOUR: 24,
+    // nyitvatartás és telefon: a build a <html> elemre írja (content/info.json)
+    PHONE: document.documentElement.dataset.phone || '+36 30 516 1606',
+    OPEN_HOUR: hourOf(document.documentElement.dataset.open || '12:00'),
+    CLOSE_HOUR: hourOf(document.documentElement.dataset.close || '00:00', true),
     TZ: 'Europe/Budapest'
   };
 
@@ -429,7 +437,7 @@
     const src = a.dataset.img;
     if (preview.getAttribute('src') === src) return;
     preview.classList.add('swap');
-    setTimeout(() => { preview.onerror = () => aosImg(preview); preview.src = src; preview.classList.remove('swap'); }, 250);
+    setTimeout(() => { preview.src = src; preview.classList.remove('swap'); }, 250);
   }));
 
   /* =========================================================
@@ -441,7 +449,7 @@
   }
   function updateStatus() {
     const now = budapestHour();
-    const open = now >= CONFIG.OPEN_HOUR && now < CONFIG.CLOSE_HOUR;
+    const open = (now >= CONFIG.OPEN_HOUR && now < CONFIG.CLOSE_HOUR) || now + 24 < CONFIG.CLOSE_HOUR;
     $$('.live-dot').forEach(d => d.classList.toggle('is-open', open));
     $$('.live-text').forEach(t => t.textContent = T(open ? 'open' : 'closed'));
     $$('.status-pill').forEach(p => { p.textContent = T(open ? 'pillOpen' : 'pillClosed'); p.classList.toggle('is-open', open); });
@@ -556,10 +564,10 @@
   const pad = n => String(n).padStart(2, '0');
   const today = new Date();
   date.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  for (let h = CONFIG.OPEN_HOUR; h <= CONFIG.CLOSE_HOUR - 2; h++) {
-    for (const m of [0, 30]) {
-      if (h === CONFIG.CLOSE_HOUR - 2 && m) continue;
-      const v = `${pad(h)}:${pad(m)}`;
+  // időpontok félóránként, nyitástól zárás előtt 2 óráig
+  for (let x = Math.ceil(CONFIG.OPEN_HOUR * 2) / 2; x <= CONFIG.CLOSE_HOUR - 2; x += .5) {
+    {
+      const v = `${pad(Math.floor(x) % 24)}:${pad(x % 1 ? 30 : 0)}`;
       time.add(new Option(v, v, v === '19:00', v === '19:00'));
     }
   }
@@ -568,6 +576,14 @@
     guests = Math.min(30, Math.max(1, guests + +b.dataset.step));
     guestsOut.textContent = guests;
   }));
+  if (CONFIG.TURNSTILE_SITEKEY) {
+    const box = document.createElement('div');
+    box.className = 'cf-turnstile'; box.dataset.sitekey = CONFIG.TURNSTILE_SITEKEY; box.dataset.theme = 'dark';
+    $('.check', form).after(box);
+    const sc = document.createElement('script');
+    sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; sc.async = true; sc.defer = true;
+    document.head.appendChild(sc);
+  }
   form.addEventListener('submit', async e => {
     e.preventDefault();
     msg.className = 'form-msg'; msg.textContent = '';
@@ -590,11 +606,17 @@ Egyéb kérés: ${data.note || '-'}
 Nyelv: ${T('langName')}`;
     try {
       if (CONFIG.FORM_ENDPOINT) {
+        // text/plain: így a böngésző nem küld előzetes CORS-kérést az Apps Scriptnek
         const res = await fetch(CONFIG.FORM_ENDPOINT, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ ...data, _subject: 'Asztalfoglalás – Bazilika', message: summary })
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            name: data.name, email: data.email, phone: data.phone, date: data.date, time: data.time,
+            guests, note: data.note || '', lang: window.AOS_I18N ? AOS_I18N.lang : 'hu',
+            website: data.website || '', turnstile: data['cf-turnstile-response'] || ''
+          })
         });
-        if (!res.ok) throw new Error(res.status);
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || !out.ok) throw new Error(out.error || res.status);
       } else if (CONFIG.BOOKING_EMAIL) {
         location.href = `mailto:${CONFIG.BOOKING_EMAIL}?subject=${encodeURIComponent('Asztalfoglalás – Bazilika')}&body=${encodeURIComponent(summary)}`;
       }
@@ -603,6 +625,7 @@ Nyelv: ${T('langName')}`;
         ? T('sent', data.name, data.date, data.time, guests, CONFIG.PHONE)
         : T('call', data.name, data.date, data.time, guests, CONFIG.PHONE);
       form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00';
+      if (window.turnstile) try { turnstile.reset(); } catch {}
     } catch (err) {
       msg.classList.add('err');
       msg.textContent = T('fail', CONFIG.PHONE);
@@ -629,6 +652,26 @@ Nyelv: ${T('langName')}`;
     const heads = $$('.dish h3');
     $$('.carousel__dots button').forEach((d, i) => heads[i] && d.setAttribute('aria-label', heads[i].textContent));
     menuBtn.setAttribute('aria-label', T(body.classList.contains('menu-open') ? 'menuClose' : 'menuOpen'));
+  });
+
+  /* ----- Közlemény: csak a megadott napok között ----- */
+  const notice = $('.notice'), nr = window.AOS_RUNTIME && AOS_RUNTIME.notice;
+  if (notice && nr) {
+    const d = new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.TZ }).format(new Date());
+    let closed = false; try { closed = sessionStorage.getItem('aos-notice') === notice.textContent.trim(); } catch {}
+    if ((!nr.from || d >= nr.from) && (!nr.to || d <= nr.to) && !closed) notice.hidden = false;
+    $('.notice__close', notice).addEventListener('click', () => {
+      notice.hidden = true;
+      try { sessionStorage.setItem('aos-notice', notice.textContent.trim()); } catch {}
+    });
+  }
+
+  /* ----- Térkép: csak kattintásra (GDPR) ----- */
+  const mapBox = $('.map-consent');
+  if (mapBox) $('.map-consent__load', mapBox).addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.title = 'Art of Sushi Bazilika'; f.referrerPolicy = 'no-referrer-when-downgrade'; f.src = mapBox.dataset.src;
+    mapBox.replaceWith(f);
   });
 
   $('#year').textContent = new Date().getFullYear();

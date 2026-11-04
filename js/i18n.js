@@ -109,6 +109,10 @@
     'Találkozzunk': 'See you',
     'a Bazilikánál.': 'at the Basilica.',
     'Adatkezelési tájékoztató': 'Privacy policy',
+    'Impresszum': 'Legal notice',
+    'Térkép betöltése': 'Load map',
+    'A térkép a Google Maps szolgáltatásból töltődik be.': 'The map is loaded from Google Maps.',
+    'Megnyitás a Google Térképen ↗': 'Open in Google Maps ↗',
     'Vissza a tetejére ↑': 'Back to top ↑',
     'A weboldalon a minőségi felhasználói élmény érdekében sütiket használunk.': 'We use cookies to give you the best possible experience on our website.',
     'Elfogad': 'Accept'
@@ -142,7 +146,7 @@
     'Előző': 'Previous',
     'Következő': 'Next'
   };
-  for (let i = 1; i <= 8; i++) ATTR[`Galéria kép ${i}`] = `Gallery image ${i}`;
+  for (let i = 1; i <= 40; i++) ATTR[`Galéria kép ${i}`] = `Gallery image ${i}`;
 
   /* ---------- Oldalcím és leírás ---------- */
   const META = {
@@ -154,10 +158,12 @@
       'Art of Sushi Bazilika – unlimited premium sushi beside St Stephen’s Basilica. Budapest, Sas u. 4, 1051. Open daily 12:00–00:00. Reservations: +36 30 516 1606.'
   };
 
+  const HOURS = { open: document.documentElement.dataset.open || '12:00', close: document.documentElement.dataset.close || '00:00' };
+
   /* ---------- A JavaScript által írt szövegek ---------- */
   const STR = {
     hu: {
-      open: 'Most nyitva · 00:00-ig', closed: 'Most zárva · nyitás 12:00-kor',
+      open: () => `Most nyitva · ${HOURS.close}-ig`, closed: () => `Most zárva · nyitás ${HOURS.open}-kor`,
       pillOpen: '● Most nyitva', pillClosed: '● Most zárva',
       menuOpen: 'Menü megnyitása', menuClose: 'Menü bezárása',
       formErr: 'Kérjük, töltse ki a kötelező (*) mezőket, és fogadja el a tájékoztatót.',
@@ -167,7 +173,7 @@
       langName: 'magyar'
     },
     en: {
-      open: 'Open now · until 00:00', closed: 'Closed now · opens at 12:00',
+      open: () => `Open now · until ${HOURS.close}`, closed: () => `Closed now · opens at ${HOURS.open}`,
       pillOpen: '● Open now', pillClosed: '● Closed now',
       menuOpen: 'Open menu', menuClose: 'Close menu',
       formErr: 'Please fill in the required (*) fields and accept the privacy policy.',
@@ -177,6 +183,10 @@
       langName: 'angol'
     }
   };
+
+  // a Pages CMS-ben szerkesztett szövegek angol párjai (js/content-i18n.js, a build készíti)
+  Object.assign(TEXT, window.AOS_TEXT_EXTRA || {});
+  Object.assign(ATTR, window.AOS_TEXT_EXTRA || {});
 
   /* ---------- Működés ---------- */
   const root = document.documentElement;

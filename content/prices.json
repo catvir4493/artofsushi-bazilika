@@ -1,0 +1,10 @@
+{
+  "adult": 12999,
+  "child": 6999,
+  "duration": 2,
+  "service": 15,
+  "drinks": {
+    "hu": "Nem tartoznak a svédasztalos árba, külön rendelhetők és külön fizetendők.",
+    "en": "Not included in the all-you-can-eat price; they are ordered and paid for separately."
+  }
+}
