@@ -28,7 +28,7 @@ const C = Object.fromEntries(COLS.map((n, i) => [n, i + 1]));
 const STATUS = { NEW: 'Új', OK: 'Visszaigazolva', NO: 'Elutasítva', SHOW: 'Megjelent', NOSHOW: 'Nem jelent meg' };
 
 /* ---------- Beállítások (Script properties) ----------
-   NOTIFY_EMAIL      – ide jön az értesítő (pl. foglalas@artofsushibp.hu); üresen: a táblázat tulajdonosa
+   NOTIFY_EMAIL      – ide jön az értesítő (pl. artofsushi.szentistvan@gmail.com); üresen: a táblázat tulajdonosa
    TURNSTILE_SECRET  – Cloudflare Turnstile titkos kulcs (opcionális; ha meg van adva, kötelező az ellenőrzés) */
 function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
 

@@ -1,6 +1,6 @@
 # 上线与维护说明（Marcell）
 
-网站：Cloudflare Pages · 域名：artofsushibp.hu（Rackhost 注册）· 后台：Pages CMS · 订桌：Google 表格（见 `apps-script/README.md`）
+网站：Cloudflare Pages · 域名：artofsushibp.hu（Rackhost 注册）· 后台：Pages CMS · 订桌：Google 表格（见 `apps-script/README.md`）· 邮箱：artofsushi.szentistvan@gmail.com
 
 ## 1. Cloudflare：接管域名 DNS
 
@@ -28,12 +28,14 @@
 1. Cloudflare → **Turnstile → Add widget**，域名填 `artofsushibp.hu`，模式 Managed。
 2. Site key 填进 `js/main.js` 的 `CONFIG.TURNSTILE_SITEKEY`；Secret key 填进 Apps Script 的脚本属性 `TURNSTILE_SECRET`。两个要同时生效。
 
-## 4. Google Workspace 邮箱
+## 4. 邮箱
 
-1. 用公司名义开 Business Starter，域名 artofsushibp.hu，建 `foglalas@artofsushibp.hu`。
-2. Google 会给验证用的 TXT 记录和 MX 记录，加到 Cloudflare 的 DNS 里（代理状态选 DNS only）。
-3. 在 Google 管理后台开启 DKIM，把给出的 TXT 记录加到 Cloudflare；再加一条 DMARC：`_dmarc` TXT `v=DMARC1; p=none; rua=mailto:foglalas@artofsushibp.hu`。
-4. 然后按 `apps-script/README.md` 建订桌表格。
+订桌通知和客人邮件都用店里现有的 Gmail：`artofsushi.szentistvan@gmail.com`（不另开 Google Workspace，不需要在 Cloudflare 加 MX 记录）。
+
+- 免费 Gmail 通过 Apps Script 每天约能发 100 封邮件，约等于每天 30 个订桌。以后订桌多了再升级 Google Workspace。
+- 以后如果想要 `foglalas@artofsushibp.hu` 这样的地址，可以用 Cloudflare 免费的 **Email Routing** 转发到这个 Gmail。
+
+然后按 `apps-script/README.md` 建订桌表格。
 
 ## 5. Pages CMS：给老板的后台
 

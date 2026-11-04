@@ -4,7 +4,9 @@
 
 ## 一次性设置（约 15 分钟）
 
-所有步骤都用**店里的 Google Workspace 账号**做（例如 foglalas@artofsushibp.hu），不要用个人 Gmail。邮件会从这个账号发出。
+所有步骤都用**店里的 Google 账号** `artofsushi.szentistvan@gmail.com` 做。客人收到的邮件会从这个地址发出。
+
+> 免费 Gmail 账号用 Apps Script 发邮件每天上限约 100 封。每个订桌发 2 封（通知 + 回执），确认时再发 1 封，所以每天大约能处理 30 个订桌。超过的话订桌仍会写进表格，只是邮件发不出去，需要换成 Google Workspace。
 
 1. 在 Google Drive 新建一个表格，命名为 `Foglalások – Bazilika`。
 2. 菜单 **扩展程序 → Apps Script**，打开脚本编辑器。
@@ -12,7 +14,7 @@
 4. 左侧齿轮 **项目设置**：
    - 勾选「在编辑器中显示 appsscript.json」，把本文件夹的 `appsscript.json` 内容粘贴进去（时区 Europe/Budapest）。
    - 在「脚本属性」里添加：
-     - `NOTIFY_EMAIL` = 接收订桌通知的邮箱，例如 `foglalas@artofsushibp.hu`
+     - `NOTIFY_EMAIL` = 接收订桌通知的邮箱，`artofsushi.szentistvan@gmail.com`
      - `TURNSTILE_SECRET` = Cloudflare Turnstile 的 Secret key（可以等 Cloudflare 开好再加）
 5. 回到表格，刷新页面，顶部出现「Foglalás」菜单。点 **Foglalás → Első beállítás**，按提示授权。会自动：
    - 建好表头、状态下拉、颜色
