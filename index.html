@@ -3,419 +3,73 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Art of Sushi Bazilika · All You Can Eat sushi · Budapest, Sas u. 4</title>
-  <meta name="description" content="Art of Sushi Bazilika – korlátlan prémium sushi a Szent István-bazilika mellett. Budapest, Sas u. 4, 1051. Nyitva minden nap 12:00–00:00. Asztalfoglalás: +36 30 516 1606.">
+  <title>Art of Sushi · Budapest · Bazilika &amp; Liszt Ferenc tér</title>
+  <meta name="description" content="Art of Sushi Budapesten – két üzlet: az új Bazilika üzlet (Sas u. 4, 1051) és a Liszt Ferenc téri üzlet (Liszt Ferenc tér 5, 1061).">
   <link rel="canonical" href="https://artofsushi-bazilika.hu/">
-  <meta property="og:title" content="Art of Sushi Bazilika">
-  <meta property="og:description" content="Korlátlan prémium sushi a Bazilika mellett. Sas u. 4, Budapest.">
-  <meta property="og:type" content="restaurant">
+  <meta property="og:title" content="Art of Sushi · Budapest">
+  <meta property="og:description" content="Válasszon üzletet: Bazilika (Sas u. 4) vagy Liszt Ferenc tér 5.">
+  <meta property="og:type" content="website">
   <meta property="og:url" content="https://artofsushi-bazilika.hu/">
-  <meta property="og:image" content="https://artofsushi.hu/istvan/wp-content/uploads/2025/10/ART02955.jpg">
-  <meta name="theme-color" content="#0c0b0a">
+  <meta name="theme-color" content="#0b0a09">
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Manrope:wght@300;400;500;600&family=Noto+Serif+JP:wght@300;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-
-  <script>
-    /* Képek: először a helyi images/ mappából, ha nincs ott, a régi oldal szerveréről. */
-    window.AOS_REMOTE = "https://artofsushi.hu/istvan/wp-content/uploads/2025/10/";
-    function aosImg(el){ el.onerror = null; el.src = window.AOS_REMOTE + el.getAttribute('src').split('/').pop(); }
-    document.documentElement.classList.add('js');
-  </script>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Restaurant",
-    "name": "Art of Sushi Bazilika",
-    "servesCuisine": ["Japanese", "Sushi"],
-    "priceRange": "$$$",
-    "telephone": "+36305161606",
-    "url": "https://artofsushi-bazilika.hu/",
-    "address": {"@type": "PostalAddress","streetAddress": "Sas u. 4","addressLocality": "Budapest","postalCode": "1051","addressCountry": "HU"},
-    "openingHoursSpecification": [{"@type": "OpeningHoursSpecification","dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],"opens": "12:00","closes": "24:00"}],
-    "acceptsReservations": "True",
-    "sameAs": ["https://www.facebook.com/artofsushiistvan","https://www.instagram.com/artofsushi.istvan","https://www.tiktok.com/@artofsushi.istvan"]
-  }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Manrope:wght@300;400;500&family=Noto+Serif+JP:wght@300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/entry.css">
+  <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
-  <!-- ============ Betöltő ============ -->
-  <div class="loader" aria-hidden="true">
-    <div class="loader__panel loader__panel--top"></div>
-    <div class="loader__panel loader__panel--bottom"></div>
-    <div class="loader__content">
-      <span class="loader__jp jp">鮨</span>
-      <span class="loader__count"><span>000</span></span>
-      <span class="loader__bar"><span></span></span>
-      <span class="loader__name">Art of Sushi — Bazilika</span>
-    </div>
-  </div>
+  <main class="entry" aria-label="Válasszon üzletet">
 
-  <!-- ============ Kurzor ============ -->
-  <div class="cursor" aria-hidden="true">
-    <span class="cursor__dot"></span>
-    <span class="cursor__ring"><em class="cursor__label"></em></span>
-  </div>
-
-  <!-- ============ Fejléc ============ -->
-  <header class="nav">
-    <a class="nav__brand" href="#top" aria-label="Art of Sushi Bazilika – kezdőlap">
-      <span class="nav__mark jp">鮨</span>
-      <span class="nav__name">Art of Sushi<small>Bazilika</small></span>
+    <!-- Új üzlet -->
+    <a class="shop shop--new" href="bazilika.html" data-shop="new">
+      <span class="shop__media"><img src="images/ART02955.jpg" alt="" fetchpriority="high"></span>
+      <span class="shop__shade" aria-hidden="true"></span>
+      <span class="shop__inner">
+        <span class="shop__index"><span class="m"><span>01 — Új üzlet</span></span></span>
+        <span class="shop__name">
+          <span class="shop__brand"><span class="m"><span>Art of Sushi</span></span></span>
+          <span class="shop__title"><span class="m"><span><em>Bazilika</em></span></span></span>
+        </span>
+        <span class="shop__info">
+          <span class="shop__row"><span class="m"><span><small>Cím</small>Sas u. 4, 1051 Budapest</span></span></span>
+          <span class="shop__row"><span class="m"><span><small>Nyitvatartás</small>Hétfő – Vasárnap · 12:00 – 00:00</span></span></span>
+        </span>
+        <span class="shop__go" aria-hidden="true"><i>→</i></span>
+      </span>
     </a>
-    <span class="nav__status"><span class="dot live-dot"></span><span class="live-text">Minden nap 12:00 – 00:00</span></span>
-    <div class="nav__right">
-      <a class="nav__book" href="#foglalas" data-cursor="Foglalás"><span>Asztalfoglalás</span></a>
-      <button class="nav__menu" aria-label="Menü megnyitása" aria-expanded="false" aria-controls="overlay">
-        <span class="nav__menu-text"><span>Menü</span><span>Bezár</span></span>
-        <span class="nav__menu-lines"><i></i><i></i></span>
-      </button>
-    </div>
-  </header>
 
-  <!-- ============ Teljes képernyős menü ============ -->
-  <div class="overlay" id="overlay" aria-hidden="true">
-    <div class="overlay__bg"></div>
-    <div class="overlay__inner">
-      <nav class="overlay__links" aria-label="Fő navigáció">
-        <a href="#rolunk" data-img="images/1-3.jpg"><small>01</small><span>Rólunk</span></a>
-        <a href="#etlap" data-img="images/ART02966.jpg"><small>02</small><span>Étlap</span></a>
-        <a href="#sef" data-img="images/ART02933.jpg"><small>03</small><span>Séf ajánlata</span></a>
-        <a href="#galeria" data-img="images/2-3.jpg"><small>04</small><span>Galéria</span></a>
-        <a href="#arak" data-img="images/ART02977.jpg"><small>05</small><span>Árak</span></a>
-        <a href="#foglalas" data-img="images/2-5.jpg"><small>06</small><span>Foglalás</span></a>
-      </nav>
-      <figure class="overlay__preview"><img src="images/1-3.jpg" onerror="aosImg(this)" alt=""></figure>
-      <div class="overlay__foot">
-        <p>Sas u. 4<br>1051 Budapest</p>
-        <p><a href="tel:+36305161606">+36 30 516 1606</a><br>Hétfő – Vasárnap 12:00 – 00:00</p>
-        <p class="overlay__social">
-          <a href="https://www.facebook.com/artofsushiistvan" target="_blank" rel="noopener">Facebook</a>
-          <a href="https://www.instagram.com/artofsushi.istvan" target="_blank" rel="noopener">Instagram</a>
-          <a href="https://www.tiktok.com/@artofsushi.istvan" target="_blank" rel="noopener">TikTok</a>
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <main class="main" id="top">
-
-    <!-- ============ HERO (rögzített jelenet) ============ -->
-    <section class="hero" aria-label="Art of Sushi Bazilika">
-      <div class="hero__pin">
-        <div class="hero__frame">
-          <img src="images/ART02955.jpg" onerror="aosImg(this)" alt="Prémium szásimi tál">
-        </div>
-        <div class="hero__outline" aria-hidden="true"></div>
-        <div class="hero__veil" aria-hidden="true"></div>
-
-        <h1 class="hero__title">
-          <span class="hero__word hero__word--l"><span class="mask"><span>Art of</span></span></span>
-          <span class="hero__word hero__word--r"><span class="mask"><span><em>Sushi</em></span></span></span>
-        </h1>
-
-        <div class="hero__meta hero__meta--l"><span class="mask"><span>Bazilika · Sas utca 4</span></span></div>
-        <div class="hero__meta hero__meta--r"><span class="mask"><span>All you can eat · Budapest</span></span></div>
-
-        <div class="hero__after">
-          <p class="kicker center">Új üzlet a Szent István-bazilika mellett</p>
-          <p class="hero__sub">Korlátlan prémium sushi,<br><em>a Bazilika árnyékában.</em></p>
-          <a class="btn btn--solid" href="#foglalas" data-cursor="Foglalás">Asztalfoglalás</a>
-        </div>
-
-        <div class="hero__hint" aria-hidden="true"><span>Görgessen</span><i></i></div>
-        <span class="hero__vertical jp" aria-hidden="true">鮨の芸術</span>
-      </div>
-    </section>
-
-    <!-- ============ RÓLUNK ============ -->
-    <section class="about" id="rolunk">
-      <p class="kicker center reveal-up">I <i></i> Rólunk</p>
-      <p class="statement" data-fill>Kizárólag Olaszországból érkező, prémium friss tengeri alapanyagok – autentikus japán kézművességgel, <em>a sushi lakomák csúcsán.</em></p>
-
-      <div class="about__grid">
-        <figure class="about__img about__img--a clip" data-speed="-0.08"><img src="images/1-3.jpg" onerror="aosImg(this)" alt="Az Art of Sushi Bazilika belső tere"></figure>
-
-        <div class="about__copy">
-          <h2 class="h2 split">A sushi művészete</h2>
-          <p class="reveal-up">Üdvözöljük az Art of Sushi-ban – fedezze fel a sushi lakomák csúcsát! Alapanyagainkat autentikus japán konyhaművészettel dolgozzuk fel, hogy a legkiválóbb ízeket nyújtsuk Önnek.</p>
-          <p class="reveal-up">Legyen szó klasszikus sushiról, sashimiról vagy kreatív japán fogásokról, széles választékunk garantáltan minden ízlést kielégít.</p>
-          <span class="signature reveal-up jp">芸術</span>
-        </div>
-
-        <figure class="about__img about__img--b clip" data-speed="0.1"><img src="images/1-4.jpg" onerror="aosImg(this)" alt="Frissen készített sushi"></figure>
-      </div>
-
-      <ul class="facts">
-        <li class="reveal-up"><strong data-count="2">0</strong><span>óra korlátlan lakoma</span></li>
-        <li class="reveal-up"><strong data-count="12">0</strong><span>óra nyitvatartás, minden nap</span></li>
-        <li class="reveal-up"><strong data-count="4">0</strong><span>kategória, szásimitól a wokig</span></li>
-      </ul>
-    </section>
-
-    <!-- ============ ÉTLAP (körhinta) ============ -->
-    <section class="menu" id="etlap">
-      <div class="head head--center">
-        <p class="kicker center reveal-up">II <i></i> Étlap</p>
-        <h2 class="h2 split">Étlapunk</h2>
-        <p class="head__lead reveal-up">Fedezze fel friss, kiváló minőségű alapanyagokból gondosan elkészített sushi- és ázsiai ételeinket.</p>
-      </div>
-
-      <div class="carousel reveal-up" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Étlap kategóriák" data-cursor="Húzza">
-        <div class="carousel__stage">
-          <article class="dish">
-            <div class="dish__img"><img src="images/ART02955.jpg" onerror="aosImg(this)" alt="Szásimi" loading="lazy"></div>
-            <div class="dish__meta"><span class="dish__no">01</span><h3>Szásimi</h3><span class="jp">刺身</span></div>
-            <p>Vékonyra szelt, nyers prémium hal – a tiszta íz, rizs nélkül.</p>
-          </article>
-          <article class="dish">
-            <div class="dish__img"><img src="images/ART02966.jpg" onerror="aosImg(this)" alt="Sushi" loading="lazy"></div>
-            <div class="dish__meta"><span class="dish__no">02</span><h3>Sushi</h3><span class="jp">寿司</span></div>
-            <p>Nigiri, maki és látványos tekercsek, frissen a pult mögül.</p>
-          </article>
-          <article class="dish">
-            <div class="dish__img"><img src="images/ART02977.jpg" onerror="aosImg(this)" alt="Előétel" loading="lazy"></div>
-            <div class="dish__meta"><span class="dish__no">03</span><h3>Előétel</h3><span class="jp">前菜</span></div>
-            <p>Könnyű, ízgazdag kezdés a lakoma előtt.</p>
-          </article>
-          <article class="dish">
-            <div class="dish__img"><img src="images/ART02988.jpg" onerror="aosImg(this)" alt="Wok" loading="lazy"></div>
-            <div class="dish__meta"><span class="dish__no">04</span><h3>Wok</h3><span class="jp">炒め物</span></div>
-            <p>Forró wokban pirított tészták és ázsiai fogások.</p>
-          </article>
-        </div>
-      </div>
-      <div class="carousel__ui">
-        <button class="carousel__btn carousel__prev" aria-label="Előző kategória">←</button>
-        <div class="carousel__dots" role="tablist"></div>
-        <span class="carousel__count"><b>01</b> / 04</span>
-        <button class="carousel__btn carousel__next" aria-label="Következő kategória">→</button>
-      </div>
-    </section>
-
-    <!-- ============ SÉF AJÁNLATA ============ -->
-    <section class="chef" id="sef">
-      <div class="head head--center">
-        <p class="kicker center reveal-up">III <i></i> Séf ajánlata</p>
-        <h2 class="h2 split">A séf kedvencei</h2>
-        <p class="head__lead reveal-up">Éttermünk legkedveltebb fogásai, amelyeket séfünk gondosan válogatott és tökéletesre alkotott – friss, ízletes és mindig a legjobb minőségben tálalva.</p>
-      </div>
-
-      <article class="feature">
-        <figure class="feature__img clip" data-cursor="Kóstolja"><img src="images/ART02922.jpg" onerror="aosImg(this)" alt="Angolna rizs" loading="lazy" data-inner></figure>
-        <div class="feature__text" data-speed="0.12">
-          <span class="feature__big" aria-hidden="true">01</span>
-          <span class="feature__no reveal-up">Signature · No. 01</span>
-          <h3 class="split">Angolna rizs</h3>
-          <span class="feature__jp jp reveal-up">鰻飯</span>
-          <p class="reveal-up">Különféle japán rizses ételeket kínálunk, friss alapanyagokból, eredeti ízekkel.</p>
-        </div>
-      </article>
-
-      <article class="feature feature--rev">
-        <figure class="feature__img clip" data-cursor="Kóstolja"><img src="images/ART02933.jpg" onerror="aosImg(this)" alt="Dragon roll" loading="lazy" data-inner></figure>
-        <div class="feature__text" data-speed="0.12">
-          <span class="feature__big" aria-hidden="true">02</span>
-          <span class="feature__no reveal-up">Signature · No. 02</span>
-          <h3 class="split">Dragon roll</h3>
-          <span class="feature__jp jp reveal-up">龍巻</span>
-          <p class="reveal-up">Változatos, látványos sushi tekercsek – friss alapanyagokból, tökéletes ízharmóniával.</p>
-        </div>
-      </article>
-    </section>
-
-    <!-- ============ Futó szalag (sebességfüggő) ============ -->
-    <div class="ticker" aria-hidden="true">
-      <div class="ticker__track">
-        <span>Szásimi</span><b></b><span>Nigiri</span><b></b><span>Dragon roll</span><b></b><span>Angolna rizs</span><b></b><span>Wok</span><b></b>
-        <span>Szásimi</span><b></b><span>Nigiri</span><b></b><span>Dragon roll</span><b></b><span>Angolna rizs</span><b></b><span>Wok</span><b></b>
-      </div>
+    <!-- Középső választóvonal -->
+    <div class="divider" aria-hidden="true">
+      <span class="divider__line"></span>
+      <span class="divider__mark jp">鮨</span>
     </div>
 
-    <!-- ============ GALÉRIA (vízszintes, rögzített) ============ -->
-    <section class="hgal" id="galeria">
-      <div class="hgal__pin">
-        <div class="hgal__head">
-          <p class="kicker">IV <i></i> Galéria</p>
-          <h2 class="h2">Pillanatok</h2>
-          <span class="hgal__count"><b>01</b> / 08</span>
-        </div>
-        <div class="hgal__track">
-          <button class="g g--1" data-cursor="Nagyít"><img src="images/2-1.jpg" onerror="aosImg(this)" alt="Galéria kép 1" loading="lazy"></button>
-          <button class="g g--2" data-cursor="Nagyít"><img src="images/2-2.jpg" onerror="aosImg(this)" alt="Galéria kép 2" loading="lazy"></button>
-          <button class="g g--3" data-cursor="Nagyít"><img src="images/2-3.jpg" onerror="aosImg(this)" alt="Galéria kép 3" loading="lazy"></button>
-          <button class="g g--4" data-cursor="Nagyít"><img src="images/2-4.jpg" onerror="aosImg(this)" alt="Galéria kép 4" loading="lazy"></button>
-          <button class="g g--1" data-cursor="Nagyít"><img src="images/2-5.jpg" onerror="aosImg(this)" alt="Galéria kép 5" loading="lazy"></button>
-          <button class="g g--2" data-cursor="Nagyít"><img src="images/2-6.jpg" onerror="aosImg(this)" alt="Galéria kép 6" loading="lazy"></button>
-          <button class="g g--3" data-cursor="Nagyít"><img src="images/2-7.jpg" onerror="aosImg(this)" alt="Galéria kép 7" loading="lazy"></button>
-          <button class="g g--4" data-cursor="Nagyít"><img src="images/2-8.jpg" onerror="aosImg(this)" alt="Galéria kép 8" loading="lazy"></button>
-          <div class="hgal__end">
-            <p class="kicker">Várjuk szeretettel</p>
-            <a class="hgal__cta" href="#foglalas" data-cursor="Foglalás">Foglaljon<br><em>asztalt</em> →</a>
-          </div>
-        </div>
-        <div class="hgal__progress" aria-hidden="true"><span></span></div>
-      </div>
-    </section>
+    <!-- Régi üzlet -->
+    <a class="shop shop--old" href="https://artofsushi.hu/" data-shop="old">
+      <span class="shop__media"><img src="images/2-3.jpg" alt=""></span>
+      <span class="shop__shade" aria-hidden="true"></span>
+      <span class="shop__inner">
+        <span class="shop__index"><span class="m"><span>02 — Liszt Ferenc tér</span></span></span>
+        <span class="shop__name">
+          <span class="shop__brand"><span class="m"><span>Art of Sushi</span></span></span>
+          <span class="shop__title"><span class="m"><span><em>Liszt</em> Ferenc tér</span></span></span>
+        </span>
+        <span class="shop__info">
+          <span class="shop__row"><span class="m"><span><small>Cím</small>Liszt Ferenc tér 5, 1061 Budapest</span></span></span>
+          <span class="shop__row"><span class="m"><span><small>Nyitvatartás</small>Hétfő – Vasárnap · 12:00 – 23:00</span></span></span>
+        </span>
+        <span class="shop__go" aria-hidden="true"><i>↗</i></span>
+      </span>
+    </a>
 
-    <!-- ============ ÁRAK ============ -->
-    <section class="pricing" id="arak">
-      <div class="head head--center">
-        <p class="kicker center reveal-up">V <i></i> Árak</p>
-        <h2 class="h2 split">All You Can Eat</h2>
-      </div>
-
-      <div class="price-card reveal-up">
-        <span class="price-card__corner tl"></span><span class="price-card__corner tr"></span>
-        <span class="price-card__corner bl"></span><span class="price-card__corner br"></span>
-        <p class="kicker center">Felnőtt ár <i></i> személyenként</p>
-        <div class="price-card__price"><span data-count="12999" data-format="hu">0</span><small>Ft</small></div>
-        <div class="price-card__row">
-          <div><span>1 m alatt</span><strong>Ingyenes</strong></div>
-          <div class="sep" aria-hidden="true"></div>
-          <div><span>1 – 1,4 m</span><strong>6 999 Ft</strong></div>
-        </div>
-      </div>
-
-      <ol class="rules">
-        <li class="reveal-up"><span class="rules__n">i</span><h4>Étkezési időszak</h4><p>Az önkiszolgáló étkezés időtartama legfeljebb 2 óra.</p></li>
-        <li class="reveal-up"><span class="rules__n">ii</span><h4>Italok és desszertek</h4><p>Nem tartoznak a svédasztalos árba, külön rendelhetők és külön fizetendők.</p></li>
-        <li class="reveal-up"><span class="rules__n">iii</span><h4>Szervizdíj</h4><p>15% szervizdíjat számolunk fel.</p></li>
-      </ol>
-    </section>
-
-    <!-- ============ FOGLALÁS ============ -->
-    <section class="booking" id="foglalas">
-      <div class="booking__bg" data-speed="0.15"><img src="images/2-3.jpg" onerror="aosImg(this)" alt="" loading="lazy"></div>
-      <div class="booking__inner">
-        <div class="booking__side">
-          <p class="kicker reveal-up">VI <i></i> Foglalás</p>
-          <h2 class="h2 split">Foglaljon asztalt</h2>
-          <p class="reveal-up">Gyors és ingyenes online foglalás néhány kattintással. Visszaigazolásunkat hamarosan megkapja.</p>
-          <a class="booking__phone reveal-up" href="tel:+36305161606">
-            <span>Telefonos foglalás</span>
-            +36 30 516 1606
-          </a>
-        </div>
-
-        <form class="booking__form reveal-up" id="bookingForm" novalidate>
-          <div class="field">
-            <input id="f-name" name="name" type="text" required autocomplete="name" placeholder=" ">
-            <label for="f-name">Név *</label>
-          </div>
-          <div class="field field--half">
-            <input id="f-email" name="email" type="email" required autocomplete="email" placeholder=" ">
-            <label for="f-email">Email *</label>
-          </div>
-          <div class="field field--half">
-            <input id="f-phone" name="phone" type="tel" required autocomplete="tel" placeholder=" ">
-            <label for="f-phone">Telefonszám *</label>
-          </div>
-          <div class="field field--half">
-            <input id="f-date" name="date" type="date" required placeholder=" ">
-            <label for="f-date">Dátum *</label>
-          </div>
-          <div class="field field--half">
-            <select id="f-time" name="time" required></select>
-            <label for="f-time" class="fixed">Időpont *</label>
-          </div>
-
-          <fieldset class="guests">
-            <legend>Létszám *</legend>
-            <div class="guests__ctrl">
-              <button type="button" data-step="-1" aria-label="Kevesebb fő">−</button>
-              <output id="f-guests" name="guests">2</output>
-              <button type="button" data-step="1" aria-label="Több fő">+</button>
-            </div>
-          </fieldset>
-
-          <div class="field field--full">
-            <textarea id="f-note" name="note" rows="2" placeholder=" "></textarea>
-            <label for="f-note">Egyéb kérés</label>
-          </div>
-
-          <label class="check">
-            <input type="checkbox" name="gdpr" required>
-            <span>Elolvastam és elfogadom az <a href="https://artofsushi.hu/adatkezelesi-tajekoztato/" target="_blank" rel="noopener">adatkezelési tájékoztatót</a> *</span>
-          </label>
-
-          <button class="btn btn--solid btn--block" type="submit">Foglalás elküldése</button>
-          <p class="form-msg" role="status" aria-live="polite"></p>
-        </form>
-      </div>
-    </section>
-
-    <!-- ============ KAPCSOLAT ============ -->
-    <section class="contact" id="kapcsolat">
-      <div class="contact__info">
-        <p class="kicker reveal-up">VII <i></i> Kapcsolat</p>
-        <h2 class="h2 split">Itt talál minket</h2>
-
-        <dl class="contact__list">
-          <div class="reveal-up"><dt>Cím</dt><dd>Sas u. 4<br>1051 Budapest</dd></div>
-          <div class="reveal-up"><dt>Nyitvatartás</dt><dd>Hétfő – Vasárnap<br>12:00 – 00:00<br><span class="status-pill"></span></dd></div>
-          <div class="reveal-up"><dt>Telefon</dt><dd><a href="tel:+36305161606">+36 30 516 1606</a></dd></div>
-          <div class="reveal-up"><dt>Követés</dt><dd class="socials">
-            <a href="https://www.facebook.com/artofsushiistvan" target="_blank" rel="noopener">Facebook</a>
-            <a href="https://www.instagram.com/artofsushi.istvan" target="_blank" rel="noopener">Instagram</a>
-            <a href="https://www.tiktok.com/@artofsushi.istvan" target="_blank" rel="noopener">TikTok</a>
-          </dd></div>
-        </dl>
-
-        <a class="btn btn--ghost reveal-up" href="https://maps.app.goo.gl/p2oUVppGKDuV3i9S8" target="_blank" rel="noopener">Útvonaltervezés</a>
-
-        <p class="contact__sister reveal-up">Testvérüzletünk: Liszt Ferenc tér 5, 1061 · <a href="tel:+36306892318">+36 30 689 2318</a> · <a href="https://artofsushi.hu/" target="_blank" rel="noopener">artofsushi.hu</a></p>
-      </div>
-
-      <div class="contact__map reveal-up">
-        <iframe title="Art of Sushi Bazilika térkép" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-          src="https://www.google.com/maps?q=Sas+utca+4,+1051+Budapest&z=16&output=embed"></iframe>
-      </div>
-    </section>
   </main>
 
-  <!-- ============ Lábléc (függöny mögül tűnik elő) ============ -->
-  <footer class="footer">
-    <div class="footer__top">
-      <a class="footer__cta" href="#foglalas" data-cursor="Foglalás">
-        <span class="kicker">Asztalfoglalás</span>
-        <span class="footer__cta-text">Találkozzunk<br><em>a Bazilikánál.</em></span>
-      </a>
-      <div class="footer__cols">
-        <div><h5>Cím</h5><p>Sas u. 4<br>1051 Budapest</p></div>
-        <div><h5>Nyitvatartás</h5><p>Hétfő – Vasárnap<br>12:00 – 00:00</p></div>
-        <div><h5>Kapcsolat</h5><p><a href="tel:+36305161606">+36 30 516 1606</a></p></div>
-        <div><h5>Követés</h5><p><a href="https://www.facebook.com/artofsushiistvan" target="_blank" rel="noopener">Facebook</a><br><a href="https://www.instagram.com/artofsushi.istvan" target="_blank" rel="noopener">Instagram</a><br><a href="https://www.tiktok.com/@artofsushi.istvan" target="_blank" rel="noopener">TikTok</a></p></div>
-      </div>
-    </div>
-    <div class="footer__giant" aria-hidden="true"><span>Art of Sushi</span></div>
-    <div class="footer__legal">
-      <span>© <span id="year">2026</span> Art of Sushi Bazilika</span>
-      <a href="https://artofsushi.hu/adatkezelesi-tajekoztato/" target="_blank" rel="noopener">Adatkezelési tájékoztató</a>
-      <a href="#top">Vissza a tetejére ↑</a>
-    </div>
-  </footer>
+  <!-- Átmenet -->
+  <div class="curtain" aria-hidden="true"></div>
 
-  <!-- Lightbox -->
-  <div class="lightbox" role="dialog" aria-modal="true" aria-label="Kép nagyítva" hidden>
-    <button class="lightbox__close" aria-label="Bezárás">×</button>
-    <button class="lightbox__nav lightbox__prev" aria-label="Előző">←</button>
-    <img alt="">
-    <button class="lightbox__nav lightbox__next" aria-label="Következő">→</button>
-    <span class="lightbox__count"></span>
-  </div>
-
-  <!-- Süti értesítő -->
-  <div class="cookie" hidden>
-    <p>A weboldalon a minőségi felhasználói élmény érdekében sütiket használunk.</p>
-    <button class="btn btn--gold btn--sm">Elfogad</button>
-  </div>
-
-  <script src="js/main.js"></script>
+  <script src="js/entry.js"></script>
 </body>
 </html>

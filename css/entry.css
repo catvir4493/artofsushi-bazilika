@@ -1,0 +1,121 @@
+/* Art of Sushi — üzletválasztó kezdőlap */
+:root{
+  --bg:#0b0a09; --text:#ede6d9; --text-2:#c8c0b2; --muted:#8a8274;
+  --gold:#c4a46c; --line:rgba(196,164,108,.3);
+  --f-display:"Cormorant Garamond","Times New Roman",serif;
+  --f-body:"Manrope",system-ui,sans-serif;
+  --f-jp:"Noto Serif JP",serif;
+  --pad:clamp(22px,5.5vw,96px);
+  --ease:cubic-bezier(.19,1,.22,1); --ease-io:cubic-bezier(.77,0,.18,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden}
+body{font:300 15px/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.07;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+img{display:block}
+em{font-style:italic;font-weight:300;color:var(--gold)}
+.jp{font-family:var(--f-jp);font-weight:300}
+:focus-visible{outline:1px solid var(--gold);outline-offset:-6px}
+.m{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em}
+.m>span{display:inline-block}
+
+/* ---------- Váz ---------- */
+.entry{position:fixed;inset:0;display:flex;flex-direction:column}
+.shop{position:relative;flex:1 1 0;min-height:0;overflow:hidden;text-decoration:none;color:inherit;display:block;
+  transition:flex-grow 1.2s var(--ease-io)}
+.shop__media{position:absolute;inset:0;overflow:hidden;will-change:clip-path}
+.shop__media img{width:100%;height:100%;object-fit:cover;transform:scale(1.06) translate3d(0,var(--py,0px),0);filter:brightness(.5) saturate(.9);
+  transition:filter 1.2s var(--ease),transform 1.6s var(--ease)}
+.shop__shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(11,10,9,.85) 0%,rgba(11,10,9,.35) 55%,rgba(11,10,9,.6) 100%)}
+.shop__inner{position:absolute;inset:0;display:grid;grid-template-columns:1fr auto auto;align-items:end;gap:clamp(24px,5vw,90px);
+  padding:0 var(--pad) clamp(26px,6vh,64px)}
+.shop__index{position:absolute;top:clamp(22px,4.5vh,44px);left:var(--pad);font:500 10.5px var(--f-body);letter-spacing:.38em;text-transform:uppercase;color:var(--gold)}
+.shop__name{display:flex;flex-direction:column}
+.shop__brand{font:500 10.5px var(--f-body);letter-spacing:.46em;text-transform:uppercase;color:var(--text-2);margin-bottom:10px}
+.shop__title{font:300 clamp(56px,8.6vw,150px)/.92 var(--f-display);letter-spacing:-.015em;white-space:nowrap}
+.shop__info{display:flex;flex-direction:column;gap:14px;padding-bottom:10px}
+.shop__row{font:300 clamp(17px,1.5vw,22px)/1.3 var(--f-display);color:var(--text)}
+.shop__row small{display:block;font:500 9.5px var(--f-body);letter-spacing:.34em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.shop__go{width:clamp(56px,5vw,74px);height:clamp(56px,5vw,74px);border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;margin-bottom:6px;position:relative;overflow:hidden;
+  transition:border-color .8s var(--ease),transform 1s var(--ease)}
+.shop__go::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--gold);transform:scale(0);transition:transform .8s var(--ease)}
+.shop__go i{position:relative;font-style:normal;font-size:18px;color:var(--text);transition:color .6s,transform .8s var(--ease)}
+
+/* ---------- Választóvonal ---------- */
+.divider{position:relative;flex:0 0 0;z-index:5;pointer-events:none}
+.divider__line{position:absolute;left:0;right:0;top:-.5px;height:1px;background:var(--gold);opacity:.55;transform:scaleX(0);transition:transform 1.3s var(--ease-io) .15s,opacity .6s}
+.divider__mark{position:absolute;left:50%;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--gold);color:var(--gold);font-size:19px;
+  opacity:0;transform:scale(.6) rotate(-8deg);transition:opacity 1s var(--ease) .9s,transform 1.2s var(--ease) .9s}
+
+/* ---------- Nyitó animáció ---------- */
+.js .shop--new .shop__media{clip-path:inset(100% 0 0 0)}
+.js .shop--old .shop__media{clip-path:inset(0 0 100% 0)}
+.shop__media{transition:clip-path 1.6s var(--ease-io) .75s}
+.js .shop__media img{transform:scale(1.3)}
+.js .shop .m>span{transform:translateY(110%);transition:transform 1.5s var(--ease)}
+.js .shop__go{opacity:0;transform:scale(.7)}
+.js .shop__shade{opacity:0;transition:opacity 1.4s var(--ease) 1s}
+
+.ready .divider__line{transform:scaleX(1)}
+.ready .divider__mark{opacity:1;transform:none}
+.ready .shop .shop__media{clip-path:inset(0 0 0 0)}
+.ready .shop .shop__media img{transform:scale(1.06) translate3d(0,var(--py,0px),0)}
+.ready .shop__shade{opacity:1}
+.ready .shop .m>span{transform:none}
+.ready .shop__go{opacity:1;transform:none;transition:opacity 1s var(--ease) 1.9s,transform 1.2s var(--ease) 1.9s,border-color .8s var(--ease)}
+.ready .shop--new .m>span{transition-delay:1.35s}
+.ready .shop--new .shop__title .m>span{transition-delay:1.45s}
+.ready .shop--new .shop__row:nth-child(1) .m>span{transition-delay:1.6s}
+.ready .shop--new .shop__row:nth-child(2) .m>span{transition-delay:1.68s}
+.ready .shop--old .m>span{transition-delay:1.5s}
+.ready .shop--old .shop__title .m>span{transition-delay:1.6s}
+.ready .shop--old .shop__row:nth-child(1) .m>span{transition-delay:1.75s}
+.ready .shop--old .shop__row:nth-child(2) .m>span{transition-delay:1.83s}
+/* a nyitás után a hover-átmenetek ne várjanak */
+.settled .shop .m>span{transition-delay:0s!important}
+.settled .shop__go{transition:border-color .8s var(--ease),transform 1s var(--ease)}
+
+/* ---------- Hover (egér) ---------- */
+@media (hover:hover) and (pointer:fine){
+  .settled .shop:hover{flex-grow:1.32}
+  .settled .entry:hover .shop:not(:hover) .shop__media img{filter:brightness(.28) saturate(.6)}
+  .settled .shop:hover .shop__media img{filter:brightness(.72) saturate(1);transform:scale(1.02) translate3d(0,var(--py,0px),0)}
+  .settled .shop:hover .shop__go{border-color:var(--gold);transform:scale(1.08)}
+  .settled .shop:hover .shop__go::before{transform:scale(1)}
+  .settled .shop:hover .shop__go i{color:var(--bg);transform:translateX(3px)}
+  .settled .shop--old:hover .shop__go i{transform:translate(2px,-2px)}
+}
+.settled .shop:focus-visible .shop__go::before{transform:scale(1)}
+.settled .shop:focus-visible .shop__go i{color:var(--bg)}
+
+/* ---------- Kilépés ---------- */
+.leaving .shop{transition:flex-grow 1.15s cubic-bezier(.55,0,.15,1)}
+.leaving .shop.is-chosen{flex-grow:6}
+.leaving .shop:not(.is-chosen){flex-grow:.0001}
+.leaving .shop .m>span{transform:translateY(-110%);transition:transform .9s var(--ease-io)!important;transition-delay:0s!important}
+.leaving .shop__go,.leaving .divider__mark{opacity:0;transition:opacity .5s!important}
+.leaving .divider__line{opacity:0}
+.leaving .shop.is-chosen .shop__media img{transform:scale(1.12);filter:brightness(.45)}
+.curtain{position:fixed;inset:0;z-index:40;background:var(--bg);opacity:0;pointer-events:none;transition:opacity .55s var(--ease) .75s}
+.leaving .curtain{opacity:1;pointer-events:auto}
+
+/* ---------- Mobil ---------- */
+@media (max-width:760px){
+  .shop__inner{grid-template-columns:1fr auto;grid-template-rows:auto auto;align-content:end;row-gap:18px;padding-bottom:clamp(22px,4vh,40px)}
+  .shop__name{grid-column:1;grid-row:1}
+  .shop__inner{grid-template-columns:1fr}
+  .shop__go{position:absolute;top:clamp(14px,3vh,30px);right:var(--pad);width:44px;height:44px;margin:0}
+  .shop__go i{font-size:15px}
+  .shop__info{grid-column:1 / -1;grid-row:2;flex-direction:row;flex-wrap:wrap;gap:10px 26px;padding-bottom:0}
+  .shop__title{font-size:clamp(42px,12.6vw,84px)}
+  .shop__row{font-size:16px}
+  .shop__brand{margin-bottom:6px;font-size:9.5px}
+  .shop__index{font-size:9.5px;letter-spacing:.3em}
+  .shop__media img{object-position:center}
+}
+
+/* ---------- Csökkentett mozgás ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;transition-delay:0s!important;animation:none!important}
+}
