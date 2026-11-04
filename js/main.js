@@ -176,7 +176,12 @@
       $$('[data-count]', e.target).forEach(countUp);
     });
   }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
-  $$('.reveal-up, .split, .clip, .facts li').forEach(el => io.observe(el));
+  $$('.reveal-up, .split, .facts li').forEach(el => io.observe(el));
+  // a képek már akkor nyíljanak, amikor a széle beér a képernyőre
+  const ioClip = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); ioClip.unobserve(e.target); } });
+  }, { threshold: 0, rootMargin: '0px 0px -4% 0px' });
+  $$('.clip').forEach(el => ioClip.observe(el));
 
   function countUp(el) {
     if (el.dataset.done) return;
