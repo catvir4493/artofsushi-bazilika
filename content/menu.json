@@ -1,0 +1,78 @@
+{
+  "categories": [
+    {
+      "name": {
+        "hu": "Szásimi",
+        "en": "Sashimi"
+      },
+      "jp": "刺身",
+      "text": {
+        "hu": "Vékonyra szelt, nyers prémium hal – a tiszta íz, rizs nélkül.",
+        "en": "Thinly sliced premium raw fish – pure flavour, no rice."
+      },
+      "image": "images/ART02955.jpg"
+    },
+    {
+      "name": {
+        "hu": "Sushi",
+        "en": "Sushi"
+      },
+      "jp": "寿司",
+      "text": {
+        "hu": "Nigiri, maki és látványos tekercsek, frissen a pult mögül.",
+        "en": "Nigiri, maki and showpiece rolls, made fresh behind the counter."
+      },
+      "image": "images/ART02966.jpg"
+    },
+    {
+      "name": {
+        "hu": "Előétel",
+        "en": "Starters"
+      },
+      "jp": "前菜",
+      "text": {
+        "hu": "Könnyű, ízgazdag kezdés a lakoma előtt.",
+        "en": "A light, flavourful start to the feast."
+      },
+      "image": "images/ART02977.jpg"
+    },
+    {
+      "name": {
+        "hu": "Wok",
+        "en": "Wok"
+      },
+      "jp": "炒め物",
+      "text": {
+        "hu": "Forró wokban pirított tészták és ázsiai fogások.",
+        "en": "Noodles and Asian dishes, tossed in a fiery wok."
+      },
+      "image": "images/ART02988.jpg"
+    }
+  ],
+  "chef": [
+    {
+      "name": {
+        "hu": "Angolna rizs",
+        "en": "Eel rice"
+      },
+      "jp": "鰻飯",
+      "text": {
+        "hu": "Különféle japán rizses ételeket kínálunk, friss alapanyagokból, eredeti ízekkel.",
+        "en": "A choice of Japanese rice dishes, made from fresh ingredients with authentic flavours."
+      },
+      "image": "images/ART02922.jpg"
+    },
+    {
+      "name": {
+        "hu": "Dragon roll",
+        "en": "Dragon roll"
+      },
+      "jp": "龍巻",
+      "text": {
+        "hu": "Változatos, látványos sushi tekercsek – friss alapanyagokból, tökéletes ízharmóniával.",
+        "en": "A varied range of striking sushi rolls – fresh ingredients in perfect harmony."
+      },
+      "image": "images/ART02933.jpg"
+    }
+  ]
+}

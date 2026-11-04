@@ -8,13 +8,19 @@
      2) BOOKING_EMAIL: e-mail cím → megnyitja a levelezőt kitöltött levéllel
      3) egyik sem: megköszöni és telefonos megerősítést kér
      TURNSTILE_SITEKEY: Cloudflare Turnstile nyilvános kulcs (opcionális, spam ellen) */
+  function hourOf(v, isClose) {
+    const [h, m] = v.split(':').map(Number);
+    const x = h + (m || 0) / 60;
+    return isClose && x <= hourOf(document.documentElement.dataset.open || '12:00') ? x + 24 : x;
+  }
   const CONFIG = {
     FORM_ENDPOINT: '',
     TURNSTILE_SITEKEY: '',
     BOOKING_EMAIL: '',
-    PHONE: '+36 30 516 1606',
-    OPEN_HOUR: 12,
-    CLOSE_HOUR: 24,
+    // nyitvatartás és telefon: a build a <html> elemre írja (content/info.json)
+    PHONE: document.documentElement.dataset.phone || '+36 30 516 1606',
+    OPEN_HOUR: hourOf(document.documentElement.dataset.open || '12:00'),
+    CLOSE_HOUR: hourOf(document.documentElement.dataset.close || '00:00', true),
     TZ: 'Europe/Budapest'
   };
 
@@ -431,7 +437,7 @@
     const src = a.dataset.img;
     if (preview.getAttribute('src') === src) return;
     preview.classList.add('swap');
-    setTimeout(() => { preview.onerror = () => aosImg(preview); preview.src = src; preview.classList.remove('swap'); }, 250);
+    setTimeout(() => { preview.src = src; preview.classList.remove('swap'); }, 250);
   }));
 
   /* =========================================================
@@ -443,7 +449,7 @@
   }
   function updateStatus() {
     const now = budapestHour();
-    const open = now >= CONFIG.OPEN_HOUR && now < CONFIG.CLOSE_HOUR;
+    const open = (now >= CONFIG.OPEN_HOUR && now < CONFIG.CLOSE_HOUR) || now + 24 < CONFIG.CLOSE_HOUR;
     $$('.live-dot').forEach(d => d.classList.toggle('is-open', open));
     $$('.live-text').forEach(t => t.textContent = T(open ? 'open' : 'closed'));
     $$('.status-pill').forEach(p => { p.textContent = T(open ? 'pillOpen' : 'pillClosed'); p.classList.toggle('is-open', open); });
@@ -558,10 +564,10 @@
   const pad = n => String(n).padStart(2, '0');
   const today = new Date();
   date.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  for (let h = CONFIG.OPEN_HOUR; h <= CONFIG.CLOSE_HOUR - 2; h++) {
-    for (const m of [0, 30]) {
-      if (h === CONFIG.CLOSE_HOUR - 2 && m) continue;
-      const v = `${pad(h)}:${pad(m)}`;
+  // időpontok félóránként, nyitástól zárás előtt 2 óráig
+  for (let x = Math.ceil(CONFIG.OPEN_HOUR * 2) / 2; x <= CONFIG.CLOSE_HOUR - 2; x += .5) {
+    {
+      const v = `${pad(Math.floor(x) % 24)}:${pad(x % 1 ? 30 : 0)}`;
       time.add(new Option(v, v, v === '19:00', v === '19:00'));
     }
   }
@@ -647,6 +653,18 @@ Nyelv: ${T('langName')}`;
     $$('.carousel__dots button').forEach((d, i) => heads[i] && d.setAttribute('aria-label', heads[i].textContent));
     menuBtn.setAttribute('aria-label', T(body.classList.contains('menu-open') ? 'menuClose' : 'menuOpen'));
   });
+
+  /* ----- Közlemény: csak a megadott napok között ----- */
+  const notice = $('.notice'), nr = window.AOS_RUNTIME && AOS_RUNTIME.notice;
+  if (notice && nr) {
+    const d = new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.TZ }).format(new Date());
+    let closed = false; try { closed = sessionStorage.getItem('aos-notice') === notice.textContent.trim(); } catch {}
+    if ((!nr.from || d >= nr.from) && (!nr.to || d <= nr.to) && !closed) notice.hidden = false;
+    $('.notice__close', notice).addEventListener('click', () => {
+      notice.hidden = true;
+      try { sessionStorage.setItem('aos-notice', notice.textContent.trim()); } catch {}
+    });
+  }
 
   /* ----- Térkép: csak kattintásra (GDPR) ----- */
   const mapBox = $('.map-consent');

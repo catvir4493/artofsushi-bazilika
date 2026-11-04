@@ -1,6 +1,6 @@
 # Art of Sushi Bazilika – weboldal
 
-Statikus weboldal (HTML + CSS + JS, nincs build lépés) az új üzlethez: **Sas u. 4, 1051 Budapest**.
+Statikus weboldal (HTML + CSS + JS) az új üzlethez: **Sas u. 4, 1051 Budapest**. A szerkeszthető tartalom a `content/` mappában van (Pages CMS), a `node scripts/build.mjs` írja be a HTML-be a `dist/` mappába. Élesítés, tárhely, háttér: **DEPLOY.md**.
 Tervezett domain: **artofsushibp.hu**
 
 ## Megnyitás
@@ -38,12 +38,20 @@ mert a régi oldal (artofsushi.hu/istvan) képei már nem elérhetők (404). A `
 Saját fotó cseréjéhez: tedd be ugyanazzal a fájlnévvel az `images/` mappába.
 
 ## Foglalási űrlap
-Statikus oldalon nincs szerver, ezért a `js/main.js` elején a `CONFIG`-ban állítsd be:
-- `FORM_ENDPOINT` – pl. ingyenes Formspree URL (https://formspree.io) → e-mailben jönnek a foglalások
-- vagy `BOOKING_EMAIL` – a látogató levelezője nyílik meg kitöltött levéllel
-Ha egyik sincs megadva, az űrlap telefonos megerősítést kér (+36 30 516 1606).
+A foglalások egy Google táblázatba érkeznek (Google Apps Script), e-mail értesítéssel és HU/EN visszaigazolással – telepítés: `apps-script/README.md`.
+A `js/main.js` elején: `FORM_ENDPOINT` = az Apps Script webalkalmazás URL-je, `TURNSTILE_SITEKEY` = Cloudflare Turnstile kulcs (opcionális).
+
+## Szerkeszthető tartalom (Pages CMS)
+- `content/*.json` – nyitvatartás, telefon, árak, közlemény, étlap, séf ajánlata, galéria, szövegek (magyar + angol)
+- `.pages.yml` – a szerkesztőfelület mezői
+- a HTML-ben `data-cms…` jelölések mutatják, hová kerül a tartalom; leírás a `scripts/build.mjs` elején
+- `js/content-i18n.js` – a build írja felül (a szerkesztett szövegek angol párjai)
+
+## Jogi oldalak
+`impresszum.html`, `adatkezeles.html` – a `[ … ]` mezőket a cég adataival ki kell tölteni.
+A betűtípusok saját tárhelyen vannak (`fonts/`), a Google térkép csak kattintásra töltődik be.
 
 ## Ellenőrizendő
 - Szervizdíj: 15% (Bazilika).
 - Az árak (12 999 Ft / 6 999 Ft) és szabályok a fő oldalról (artofsushi.hu) származnak – ellenőrizd, hogy a Bazilika üzletre is érvényesek-e.
-- Adatkezelési tájékoztató: jelenleg a fő oldal tájékoztatójára mutat.
+- Impresszum és adatkezelési tájékoztató: cégadatok kitöltése.
