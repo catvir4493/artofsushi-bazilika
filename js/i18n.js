@@ -92,6 +92,7 @@
     'Email *': 'Email *',
     'Telefonszám *': 'Phone *',
     'Dátum *': 'Date *',
+    'Válasszon napot': 'Choose a date',
     'Időpont *': 'Time *',
     'Létszám *': 'Guests *',
     'Egyéb kérés': 'Special requests',

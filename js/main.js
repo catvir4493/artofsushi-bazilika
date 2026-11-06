@@ -552,6 +552,9 @@
   const msg = $('.form-msg', form);
   const pad = n => String(n).padStart(2, '0');
   const today = new Date();
+  const syncDate = () => date.parentElement.classList.toggle('is-empty', !date.value);
+  ['input', 'change', 'blur'].forEach(e => date.addEventListener(e, syncDate));
+  syncDate();
   date.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   // időpontok félóránként, nyitástól zárás előtt 2 óráig
   for (let x = Math.ceil(CONFIG.OPEN_HOUR * 2) / 2; x <= CONFIG.CLOSE_HOUR - 2; x += .5) {
@@ -620,7 +623,7 @@ Nyelv: ${T('langName')}`;
       msg.textContent = (CONFIG.FORM_ENDPOINT || CONFIG.BOOKING_EMAIL)
         ? T('sent', data.name, data.date, data.time, guests, CONFIG.PHONE)
         : T('call', data.name, data.date, data.time, guests, CONFIG.PHONE);
-      form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00';
+      form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00'; syncDate();
       if (window.turnstile) try { turnstile.reset(); } catch {}
     } catch (err) {
       msg.classList.add('err');

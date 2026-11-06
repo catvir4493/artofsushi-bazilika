@@ -335,6 +335,12 @@ html:not(.js) .clip img{clip-path:none;transform:none}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold)}
 .field label{position:absolute;left:0;top:26px;font-size:15px;color:var(--muted);pointer-events:none;transition:all .4s var(--ease)}
 .field input:focus+label,.field input:not(:placeholder-shown)+label,.field textarea:focus+label,.field textarea:not(:placeholder-shown)+label,.field label.fixed,.field input[type=date]+label{top:2px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:500}
+.field__ph{position:absolute;left:0;top:26px;font:300 16px var(--f-body);color:var(--muted);pointer-events:none;display:none}
+.field.is-empty .field__ph{display:block}
+.field.is-empty input[type=date]{color:transparent}
+.field.is-empty input[type=date]::-webkit-datetime-edit{color:transparent}
+.field.is-empty input[type=date]:focus,.field.is-empty input[type=date]:focus::-webkit-datetime-edit{color:var(--text)}
+.field.is-empty input[type=date]:focus~.field__ph{display:none}
 .field.invalid input,.field.invalid select{border-color:#c0634f}
 .guests{grid-column:span 2;border:0;margin:8px 0 0;padding:0 0 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(237,230,217,.2)}
 .guests legend{float:left;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:500;padding:0}
