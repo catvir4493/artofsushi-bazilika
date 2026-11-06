@@ -25,7 +25,18 @@ const CFG = {
 // Az oszlopok sorrendje a „Foglalások” lapon
 const COLS = ['Beérkezett', 'Dátum', 'Időpont', 'Létszám', 'Név', 'Telefon', 'Email', 'Egyéb kérés', 'Nyelv', 'Állapot', 'Kezelte', 'Belső megjegyzés', 'Azonosító'];
 const C = Object.fromEntries(COLS.map((n, i) => [n, i + 1]));
-const STATUS = { NEW: 'Új', OK: 'Visszaigazolva', NO: 'Elutasítva', SHOW: 'Megjelent', NOSHOW: 'Nem jelent meg' };
+// Fejléc a táblázatban: magyar + kínai (a kód a magyar kulcsot használja)
+const LABELS = {
+  'Beérkezett': 'Beérkezett 提交时间', 'Dátum': 'Dátum 日期', 'Időpont': 'Időpont 时间', 'Létszám': 'Létszám 人数',
+  'Név': 'Név 姓名', 'Telefon': 'Telefon 电话', 'Email': 'Email 邮箱', 'Egyéb kérés': 'Egyéb kérés 备注',
+  'Nyelv': 'Nyelv 语言', 'Állapot': 'Állapot 状态', 'Kezelte': 'Kezelte 处理人',
+  'Belső megjegyzés': 'Belső megjegyzés 内部备注', 'Azonosító': 'Azonosító 编号'
+};
+const STATUS = { NEW: 'Új 新订单', OK: 'Visszaigazolva 已确认', NO: 'Elutasítva 已拒绝', SHOW: 'Megjelent 已到店', NOSHOW: 'Nem jelent meg 未到店' };
+// régi (csak magyar) állapotok → új, kétnyelvű
+const OLD_STATUS = { 'Új': STATUS.NEW, 'Visszaigazolva': STATUS.OK, 'Elutasítva': STATUS.NO, 'Megjelent': STATUS.SHOW, 'Nem jelent meg': STATUS.NOSHOW };
+const VIEWS = [['Ma 今天', 'TODAY()', 'Ma'], ['Holnap 明天', 'TODAY()+1', 'Holnap']];
+const DEDUPE_MINUTES = 10;
 
 /* ---------- Beállítások (Script properties) ----------
    NOTIFY_EMAIL      – ide jön az értesítő (pl. artofsushi.szentistvan@gmail.com); üresen: a táblázat tulajdonosa
@@ -52,13 +63,16 @@ function doPost(e) {
     lock.waitLock(20000);
     try {
       const sh = sheet_();
+      // ugyanaz a foglalás kétszer (dupla kattintás): csak egyszer rögzítjük
+      const dup = findDuplicate_(sh, b);
+      if (dup) return json_({ ok: true, id: dup, duplicate: true });
       const row = new Array(COLS.length).fill('');
       row[C['Beérkezett'] - 1] = new Date();
       row[C['Dátum'] - 1] = b.dateObj;
       row[C['Időpont'] - 1] = b.time;
       row[C['Létszám'] - 1] = b.guests;
       row[C['Név'] - 1] = b.name;
-      row[C['Telefon'] - 1] = b.phone;
+      row[C['Telefon'] - 1] = "'" + b.phone; // szövegként, különben a „+36…” képletnek látszik
       row[C['Email'] - 1] = b.email;
       row[C['Egyéb kérés'] - 1] = b.note;
       row[C['Nyelv'] - 1] = b.lang.toUpperCase();
@@ -186,11 +200,11 @@ function notifyRestaurant_(b) {
    3. Menü a táblázatban
    ========================================================= */
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Foglalás')
-    .addItem('✓ Visszaigazolás küldése', 'menuConfirm')
-    .addItem('✕ Elutasítás küldése', 'menuReject')
+  SpreadsheetApp.getUi().createMenu('Foglalás 订桌')
+    .addItem('✓ Visszaigazolás küldése · 发送确认', 'menuConfirm')
+    .addItem('✕ Elutasítás küldése · 发送拒绝', 'menuReject')
     .addSeparator()
-    .addItem('Első beállítás (egyszer kell)', 'setup')
+    .addItem('Beállítás / frissítés · 设置/更新', 'setup')
     .addToUi();
 }
 function menuConfirm() { actOnSelection_('confirm'); }
@@ -199,9 +213,9 @@ function menuReject() { actOnSelection_('reject'); }
 function actOnSelection_(kind) {
   const ui = SpreadsheetApp.getUi();
   const sh = SpreadsheetApp.getActiveSheet();
-  if (sh.getName() !== CFG.SHEET) { ui.alert(`Kérjük, a „${CFG.SHEET}” lapon jelölje ki a foglalás sorát.`); return; }
+  if (sh.getName() !== CFG.SHEET) { ui.alert(`Kérjük, a „${CFG.SHEET}” lapon jelölje ki a foglalás sorát.\n请在「${CFG.SHEET}」表里选中订单那一行。`); return; }
   const r = sh.getActiveRange().getRow();
-  if (r < 2) { ui.alert('Jelöljön ki egy foglalást (ne a fejlécet).'); return; }
+  if (r < 2) { ui.alert('Jelöljön ki egy foglalást (ne a fejlécet).\n请选中一条订单（不是表头）。'); return; }
   const v = sh.getRange(r, 1, 1, COLS.length).getValues()[0];
   const get = n => v[C[n] - 1];
   const b = {
@@ -209,15 +223,17 @@ function actOnSelection_(kind) {
     dateObj: new Date(get('Dátum')), note: get('Egyéb kérés'), lang: String(get('Nyelv')).toLowerCase() === 'en' ? 'en' : 'hu'
   };
   const status = get('Állapot');
+  if (!b.email) { ui.alert('Ebben a sorban nincs e-mail cím.\n这一行没有邮箱。'); return; }
   const label = kind === 'confirm' ? 'visszaigazolást' : 'elutasítást';
+  const zh = kind === 'confirm' ? '确认' : '拒绝';
   if (status === STATUS.OK || status === STATUS.NO) {
-    if (ui.alert(`Ez a foglalás már „${status}”. Biztosan újra küld ${label}?`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+    if (ui.alert(`Ez a foglalás már „${status}”. Biztosan újra küld ${label}?\n这个订单已经是「${status}」，确定再发一次${zh}邮件？`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
   }
-  if (ui.alert(`${label.charAt(0).toUpperCase() + label.slice(1)} küld: ${b.name}, ${fmtDate_(b.dateObj, 'hu')} ${b.time}, ${b.guests} fő (${b.email})?`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  if (ui.alert(`${label.charAt(0).toUpperCase() + label.slice(1)} küld · 发送${zh}邮件:\n${b.name}, ${fmtDate_(b.dateObj, 'hu')} ${b.time}, ${b.guests} fő (${b.email})`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
   sendGuest_(kind, b);
   sh.getRange(r, C['Állapot']).setValue(kind === 'confirm' ? STATUS.OK : STATUS.NO);
   sh.getRange(r, C['Kezelte']).setValue(Session.getActiveUser().getEmail() || 'igen');
-  SpreadsheetApp.getActive().toast('Elküldve.', 'Foglalás', 4);
+  SpreadsheetApp.getActive().toast('Elküldve · 已发送', 'Foglalás', 4);
 }
 
 function fmtTime_(t) {
@@ -232,26 +248,40 @@ function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone('Europe/Budapest');
   const sh = sheet_();
-  sh.getRange(1, 1, 1, COLS.length).setValues([COLS]).setFontWeight('bold').setBackground('#0c0b0a').setFontColor('#e8dcc4');
+  sh.getRange(1, 1, 1, COLS.length).setValues([COLS.map(c => LABELS[c] || c)]).setFontWeight('bold').setBackground('#0c0b0a').setFontColor('#e8dcc4');
   sh.setFrozenRows(1);
   sh.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm');
   sh.getRange('B:B').setNumberFormat('yyyy-mm-dd');
   sh.getRange('C:C').setNumberFormat('@');
-  const widths = [130, 95, 70, 70, 160, 130, 200, 220, 55, 130, 140, 200, 90];
+  sh.getRange('F:F').setNumberFormat('@');
+  const widths = [150, 105, 80, 80, 170, 140, 210, 230, 75, 150, 140, 200, 90];
   widths.forEach((w, i) => sh.setColumnWidth(i + 1, w));
 
+  // régi állapotok átírása kétnyelvűre
+  const last = sh.getLastRow();
+  if (last > 1) {
+    const r = sh.getRange(2, C['Állapot'], last - 1, 1);
+    r.clearDataValidations();
+    r.setValues(r.getValues().map(([v]) => [OLD_STATUS[v] || v]));
+  }
   const st = sh.getRange(2, C['Állapot'], sh.getMaxRows() - 1, 1);
   st.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(Object.values(STATUS), true).build());
   const colors = [[STATUS.NEW, '#fde7c3'], [STATUS.OK, '#d4edda'], [STATUS.NO, '#f9d6d5'], [STATUS.SHOW, '#dbe7fb'], [STATUS.NOSHOW, '#e6e6e6']];
   sh.setConditionalFormatRules(colors.map(([t, c]) =>
     SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t).setBackground(c).setRanges([st]).build()));
 
-  dayView_(ss, 'Ma', 'TODAY()');
-  dayView_(ss, 'Holnap', 'TODAY()+1');
+  VIEWS.forEach(([name, expr, old]) => {
+    const o = ss.getSheetByName(old);
+    if (o && o.getName() !== name) ss.deleteSheet(o);
+    dayView_(ss, name, expr);
+  });
+  // ritkán kell: Kezelte, Belső megjegyzés, Azonosító elrejtve (jobb klikk → megjelenítés)
+  sh.showColumns(1, COLS.length);
+  sh.hideColumns(C['Kezelte'], 3);
 
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'cleanup').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('cleanup').timeBased().everyDays(1).atHour(4).create();
-  SpreadsheetApp.getActive().toast('Kész. A Foglalás menü használható.', 'Beállítás', 5);
+  SpreadsheetApp.getActive().toast('Kész · 完成', 'Beállítás', 5);
 }
 
 function dayView_(ss, name, dayExpr) {
@@ -259,9 +289,9 @@ function dayView_(ss, name, dayExpr) {
   sh.clear();
   const src = `'${CFG.SHEET}'`;
   sh.getRange('A1').setFormula(
-    `=IFERROR(SORT(FILTER({${src}!C2:C,${src}!D2:D,${src}!E2:E,${src}!F2:F,${src}!H2:H,${src}!J2:J},${src}!B2:B=${dayExpr},${src}!J2:J<>"${STATUS.NO}"),1,TRUE),"Nincs foglalás")`);
+    `=IFERROR(SORT(FILTER({${src}!C2:C,${src}!D2:D,${src}!E2:E,${src}!F2:F,${src}!H2:H,${src}!J2:J},${src}!B2:B=${dayExpr},${src}!J2:J<>"${STATUS.NO}"),1,TRUE),"Nincs foglalás · 暂无订单")`);
   sh.insertRowBefore(1);
-  sh.getRange(1, 1, 1, 6).setValues([['Időpont', 'Létszám', 'Név', 'Telefon', 'Egyéb kérés', 'Állapot']])
+  sh.getRange(1, 1, 1, 6).setValues([['Időpont 时间', 'Létszám 人数', 'Név 姓名', 'Telefon 电话', 'Egyéb kérés 备注', 'Állapot 状态']])
     .setFontWeight('bold').setBackground('#0c0b0a').setFontColor('#e8dcc4');
   sh.setFrozenRows(1);
 }
@@ -279,6 +309,23 @@ function cleanup() {
     const d = dates[i][0];
     if (d instanceof Date && d < limit) sh.deleteRow(i + 2);
   }
+}
+
+function findDuplicate_(sh, b) {
+  const last = sh.getLastRow();
+  if (last < 2) return '';
+  const n = Math.min(40, last - 1);
+  const rows = sh.getRange(last - n + 1, 1, n, COLS.length).getValues();
+  const since = Date.now() - DEDUPE_MINUTES * 60000;
+  const day = Utilities.formatDate(b.dateObj, 'Europe/Budapest', 'yyyy-MM-dd');
+  for (const v of rows) {
+    const got = v[C['Beérkezett'] - 1], d = v[C['Dátum'] - 1];
+    if (!(got instanceof Date) || got.getTime() < since || !(d instanceof Date)) continue;
+    if (String(v[C['Email'] - 1]).toLowerCase() === b.email.toLowerCase()
+      && Utilities.formatDate(d, 'Europe/Budapest', 'yyyy-MM-dd') === day
+      && fmtTime_(v[C['Időpont'] - 1]) === b.time) return v[C['Azonosító'] - 1] || 'dup';
+  }
+  return '';
 }
 
 function sheet_() {

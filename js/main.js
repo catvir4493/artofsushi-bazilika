@@ -573,8 +573,11 @@
     sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; sc.async = true; sc.defer = true;
     document.head.appendChild(sc);
   }
+  const submitBtn = $('button[type="submit"]', form);
+  let sending = false;
   form.addEventListener('submit', async e => {
     e.preventDefault();
+    if (sending) return;
     msg.className = 'form-msg'; msg.textContent = '';
     let ok = true;
     $$('input[required], select[required]', form).forEach(inp => {
@@ -593,6 +596,10 @@ Dátum: ${data.date} ${data.time}
 Létszám: ${data.guests} fő
 Egyéb kérés: ${data.note || '-'}
 Nyelv: ${T('langName')}`;
+    sending = true;
+    const btnLabel = submitBtn.textContent;
+    submitBtn.disabled = true; submitBtn.setAttribute('aria-busy', 'true');
+    submitBtn.textContent = T('sending');
     try {
       if (CONFIG.FORM_ENDPOINT) {
         // text/plain: így a böngésző nem küld előzetes CORS-kérést az Apps Scriptnek
@@ -618,6 +625,10 @@ Nyelv: ${T('langName')}`;
     } catch (err) {
       msg.classList.add('err');
       msg.textContent = T('fail', CONFIG.PHONE);
+    } finally {
+      sending = false;
+      submitBtn.disabled = false; submitBtn.removeAttribute('aria-busy');
+      submitBtn.textContent = btnLabel;
     }
   });
 

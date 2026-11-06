@@ -127,6 +127,7 @@
     'Fő navigáció': 'Main navigation',
     'Foglalás': 'Book',
     'Prémium szásimi tál': 'Premium sashimi platter',
+    'Art Of Sushi – festett logó': 'Art Of Sushi – painted logo',
     'Az Art of Sushi Bazilika belső tere': 'Inside Art of Sushi Bazilika',
     'Frissen készített sushi': 'Freshly made sushi',
     'Étlap kategóriák': 'Menu categories',
@@ -170,6 +171,7 @@
       sent: (n, d, t, g, p) => `Köszönjük, ${n}! Foglalási kérését (${d}, ${t}, ${g} fő) elküldtük – hamarosan visszaigazoljuk. Sürgős esetben hívjon: ${p}.`,
       call: (n, d, t, g, p) => `Köszönjük, ${n}! A foglalás (${d}, ${t}, ${g} fő) véglegesítéséhez kérjük, hívjon minket: ${p}.`,
       fail: p => `Hiba történt a küldéskor. Kérjük, foglaljon telefonon: ${p}.`,
+      sending: 'Küldés folyamatban…',
       langName: 'magyar'
     },
     en: {
@@ -180,6 +182,7 @@
       sent: (n, d, t, g, p) => `Thank you, ${n}! Your booking request (${d}, ${t}, ${g} ${g == 1 ? 'guest' : 'guests'}) has been sent – we will confirm it shortly. If it is urgent, please call ${p}.`,
       call: (n, d, t, g, p) => `Thank you, ${n}! To confirm your booking (${d}, ${t}, ${g} ${g == 1 ? 'guest' : 'guests'}), please call us on ${p}.`,
       fail: p => `Sorry, something went wrong. Please book by phone: ${p}.`,
+      sending: 'Sending…',
       langName: 'angol'
     }
   };
