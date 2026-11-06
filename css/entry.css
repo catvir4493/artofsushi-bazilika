@@ -133,7 +133,7 @@ em{font-style:italic;font-weight:300;color:var(--gold)}
   .shop__index{font-size:9.5px;letter-spacing:.3em}
   .shop__media img{object-position:center}
   .shop--new .shop__media img{object-position:26% 50%}
-  .shop--old .shop__media img{object-position:12% 50%}
+  .shop--old .shop__media img{object-position:50% 50%}
 }
 
 /* ---------- Csökkentett mozgás ---------- */
