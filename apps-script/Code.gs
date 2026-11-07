@@ -79,6 +79,10 @@ function doPost(e) {
       row[C['Állapot'] - 1] = STATUS.NEW;
       row[C['Azonosító'] - 1] = b.id;
       sh.appendRow(row);
+      // fix formátum minden új sorra (különben a táblázat nyelvi beállítása szerint jelenik meg, pl. „上午”)
+      const r = sh.getLastRow();
+      sh.getRange(r, C['Beérkezett']).setNumberFormat('yyyy-mm-dd hh:mm');
+      sh.getRange(r, C['Dátum']).setNumberFormat('yyyy-mm-dd');
     } finally { lock.releaseLock(); }
 
     notifyRestaurant_(b);
