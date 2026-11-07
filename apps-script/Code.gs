@@ -6,8 +6,8 @@
  *  - értesítő e-mail az üzletnek (Válasz = a vendég címe)
  *  - automatikus visszaigazolás a vendégnek: „megkaptuk, hamarosan visszaigazoljuk”
  *  - „Foglalás” menü a táblázatban: visszaigazolás / elutasítás küldése a kijelölt sorra
- *  - „Ma” és „Holnap” lap a napi foglalásokhoz
- *  - naponta törli a 90 napnál régebbi foglalásokat (GDPR)
+ *  - a következő 7 nap mindegyikének saját lapja („11.08”), élőben a fő lapból
+ *  - minden éjjel törli az elmúlt nap foglalásait és lapját, és létrehozza a 7. napot
  *
  * Telepítés: apps-script/README.md
  */
@@ -18,24 +18,28 @@ const CFG = {
   ADDRESS: 'Sas u. 4, 1051 Budapest',
   PHONE: '+36 30 516 1606',
   SITE: 'https://artofsushibp.hu/bazilika.html',
-  RETENTION_DAYS: 90,
+  DAY_TABS: 7,
   MAX_GUESTS: 30
 };
 
-// Az oszlopok sorrendje a „Foglalások” lapon
-const COLS = ['Beérkezett', 'Dátum', 'Időpont', 'Létszám', 'Név', 'Telefon', 'Email', 'Egyéb kérés', 'Nyelv', 'Állapot', 'Kezelte', 'Belső megjegyzés', 'Azonosító'];
+// Az oszlopok sorrendje a „Foglalások” lapon (az utolsó három rejtett)
+const COLS = ['Dátum', 'Időpont', 'Név', 'Létszám', 'Telefon', 'Email', 'Egyéb kérés', 'Állapot', 'Beérkezett', 'Nyelv', 'Azonosító'];
+const HIDDEN_FROM = 'Beérkezett';
 const C = Object.fromEntries(COLS.map((n, i) => [n, i + 1]));
 // Fejléc a táblázatban: magyar + kínai (a kód a magyar kulcsot használja)
 const LABELS = {
-  'Beérkezett': 'Beérkezett 提交时间', 'Dátum': 'Dátum 日期', 'Időpont': 'Időpont 时间', 'Létszám': 'Létszám 人数',
-  'Név': 'Név 姓名', 'Telefon': 'Telefon 电话', 'Email': 'Email 邮箱', 'Egyéb kérés': 'Egyéb kérés 备注',
-  'Nyelv': 'Nyelv 语言', 'Állapot': 'Állapot 状态', 'Kezelte': 'Kezelte 处理人',
-  'Belső megjegyzés': 'Belső megjegyzés 内部备注', 'Azonosító': 'Azonosító 编号'
+  'Dátum': 'Dátum 日期', 'Időpont': 'Időpont 时间', 'Név': 'Név 姓名', 'Létszám': 'Létszám 人数',
+  'Telefon': 'Telefon 电话', 'Email': 'Email 邮箱', 'Egyéb kérés': 'Egyéb kérés 备注', 'Állapot': 'Állapot 状态',
+  'Beérkezett': 'Beérkezett 提交时间', 'Nyelv': 'Nyelv 语言', 'Azonosító': 'Azonosító 编号'
 };
 const STATUS = { NEW: 'Új 新订单', OK: 'Visszaigazolva 已确认', NO: 'Elutasítva 已拒绝', SHOW: 'Megjelent 已到店', NOSHOW: 'Nem jelent meg 未到店' };
 // régi (csak magyar) állapotok → új, kétnyelvű
 const OLD_STATUS = { 'Új': STATUS.NEW, 'Visszaigazolva': STATUS.OK, 'Elutasítva': STATUS.NO, 'Megjelent': STATUS.SHOW, 'Nem jelent meg': STATUS.NOSHOW };
-const VIEWS = [['Ma 今天', 'TODAY()', 'Ma'], ['Holnap 明天', 'TODAY()+1', 'Holnap']];
+// a napi lapok oszlopai (a fő lapból)
+const DAY_COLS = ['Időpont', 'Név', 'Létszám', 'Telefon', 'Egyéb kérés', 'Állapot'];
+const DAY_TAB = /^\d{2}\.\d{2}$/;      // pl. „11.08”
+const OLD_TABS = ['Ma', 'Holnap', 'Ma 今天', 'Holnap 明天', 'Régi sorok 旧行'];
+const HEAD_BG = '#0c0b0a', HEAD_FG = '#e8dcc4';
 const DEDUPE_MINUTES = 10;
 
 /* ---------- Beállítások (Script properties) ----------
@@ -63,22 +67,27 @@ function doPost(e) {
     lock.waitLock(20000);
     try {
       const sh = sheet_();
+      migrate_(SpreadsheetApp.getActive(), sh); // ha még a régi elrendezés van, előbb átírja (csak egyszer)
       // ugyanaz a foglalás kétszer (dupla kattintás): csak egyszer rögzítjük
       const dup = findDuplicate_(sh, b);
       if (dup) return json_({ ok: true, id: dup, duplicate: true });
       const row = new Array(COLS.length).fill('');
-      row[C['Beérkezett'] - 1] = new Date();
-      row[C['Dátum'] - 1] = b.dateObj;
-      row[C['Időpont'] - 1] = b.time;
-      row[C['Létszám'] - 1] = b.guests;
-      row[C['Név'] - 1] = b.name;
-      row[C['Telefon'] - 1] = "'" + b.phone; // szövegként, különben a „+36…” képletnek látszik
-      row[C['Email'] - 1] = b.email;
-      row[C['Egyéb kérés'] - 1] = b.note;
-      row[C['Nyelv'] - 1] = b.lang.toUpperCase();
-      row[C['Állapot'] - 1] = STATUS.NEW;
-      row[C['Azonosító'] - 1] = b.id;
+      const put = (k, v) => { row[C[k] - 1] = v; };
+      put('Dátum', b.dateObj);
+      put('Időpont', b.time);
+      put('Név', b.name);
+      put('Létszám', b.guests);
+      put('Telefon', "'" + b.phone); // szövegként, különben a „+36…” képletnek látszik
+      put('Email', b.email);
+      put('Egyéb kérés', b.note);
+      put('Állapot', STATUS.NEW);
+      put('Beérkezett', new Date());
+      put('Nyelv', b.lang.toUpperCase());
+      put('Azonosító', b.id);
       sh.appendRow(row);
+      formatRows_(sh);
+      sortMain_(sh);
+      ensureDayTabs_();
     } finally { lock.releaseLock(); }
 
     notifyRestaurant_(b);
@@ -232,7 +241,6 @@ function actOnSelection_(kind) {
   if (ui.alert(`${label.charAt(0).toUpperCase() + label.slice(1)} küld · 发送${zh}邮件:\n${b.name}, ${fmtDate_(b.dateObj, 'hu')} ${b.time}, ${b.guests} fő (${b.email})`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
   sendGuest_(kind, b);
   sh.getRange(r, C['Állapot']).setValue(kind === 'confirm' ? STATUS.OK : STATUS.NO);
-  sh.getRange(r, C['Kezelte']).setValue(Session.getActiveUser().getEmail() || 'igen');
   SpreadsheetApp.getActive().toast('Elküldve · 已发送', 'Foglalás', 4);
 }
 
@@ -242,80 +250,164 @@ function fmtTime_(t) {
 }
 
 /* =========================================================
-   4. Első beállítás: fejléc, legördülő, színek, Ma/Holnap, napi törlés
+   4. Beállítás / frissítés (többször is futtatható)
+   - ha a lap még a régi elrendezésű: előbb rejtett biztonsági másolat, majd átírás az új oszlopokra
+   - a múltbeli és a hibás (elcsúszott) sorok kimaradnak
    ========================================================= */
 function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone('Europe/Budapest');
   const sh = sheet_();
-  sh.getRange(1, 1, 1, COLS.length).setValues([COLS.map(c => LABELS[c] || c)]).setFontWeight('bold').setBackground('#0c0b0a').setFontColor('#e8dcc4');
-  sh.setFrozenRows(1);
-  sh.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm');
-  sh.getRange('B:B').setNumberFormat('yyyy-mm-dd');
-  sh.getRange('C:C').setNumberFormat('@');
-  sh.getRange('F:F').setNumberFormat('@');
-  const widths = [150, 105, 80, 80, 170, 140, 210, 230, 75, 150, 140, 200, 90];
-  widths.forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  migrate_(ss, sh);
 
-  // régi állapotok átírása kétnyelvűre
-  const last = sh.getLastRow();
-  if (last > 1) {
-    const r = sh.getRange(2, C['Állapot'], last - 1, 1);
-    r.clearDataValidations();
-    r.setValues(r.getValues().map(([v]) => [OLD_STATUS[v] || v]));
-  }
+  sh.setFrozenRows(1);
+  sh.getRange(1, 1, 1, COLS.length).setValues([COLS.map(c => LABELS[c])]);
+  styleHeader_(sh.getRange(1, 1, 1, COLS.length));
+  const widths = { 'Dátum': 105, 'Időpont': 80, 'Név': 170, 'Létszám': 80, 'Telefon': 140, 'Email': 220, 'Egyéb kérés': 240, 'Állapot': 160, 'Beérkezett': 140, 'Nyelv': 75, 'Azonosító': 95 };
+  COLS.forEach((c, i) => sh.setColumnWidth(i + 1, widths[c]));
+  formatRows_(sh);
+
   const st = sh.getRange(2, C['Állapot'], sh.getMaxRows() - 1, 1);
   st.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(Object.values(STATUS), true).build());
   const colors = [[STATUS.NEW, '#fde7c3'], [STATUS.OK, '#d4edda'], [STATUS.NO, '#f9d6d5'], [STATUS.SHOW, '#dbe7fb'], [STATUS.NOSHOW, '#e6e6e6']];
   sh.setConditionalFormatRules(colors.map(([t, c]) =>
     SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t).setBackground(c).setRanges([st]).build()));
 
-  VIEWS.forEach(([name, expr, old]) => {
-    const o = ss.getSheetByName(old);
-    if (o && o.getName() !== name) ss.deleteSheet(o);
-    dayView_(ss, name, expr);
-  });
-  // ritkán kell: Kezelte, Belső megjegyzés, Azonosító elrejtve (jobb klikk → megjelenítés)
+  // ritkán kell: Beérkezett, Nyelv, Azonosító elrejtve (jobb klikk az oszlopfejlécen → megjelenítés)
   sh.showColumns(1, COLS.length);
-  sh.hideColumns(C['Kezelte'], 3);
+  sh.hideColumns(C[HIDDEN_FROM], COLS.length - C[HIDDEN_FROM] + 1);
 
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'cleanup').forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('cleanup').timeBased().everyDays(1).atHour(4).create();
-  SpreadsheetApp.getActive().toast('Kész · 完成', 'Beállítás', 5);
+  OLD_TABS.forEach(n => { const o = ss.getSheetByName(n); if (o) ss.deleteSheet(o); });
+  ss.getSheets().forEach(s => { if (DAY_TAB.test(s.getName())) ss.deleteSheet(s); }); // napi lapok újraépítése (formázás)
+  if (sh.getIndex() !== 1) { ss.setActiveSheet(sh); ss.moveActiveSheet(1); }
+  daily();
+
+  ScriptApp.getProjectTriggers().filter(t => ['cleanup', 'daily'].includes(t.getHandlerFunction())).forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('daily').timeBased().everyDays(1).atHour(0).nearMinute(10).create();
+  ss.setActiveSheet(sh);
+  ss.toast('Kész · 完成', 'Beállítás', 5);
 }
 
-function dayView_(ss, name, dayExpr) {
-  const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+function styleHeader_(rng) {
+  rng.setFontWeight('bold').setBackground(HEAD_BG).setFontColor(HEAD_FG).setHorizontalAlignment('center').setVerticalAlignment('middle');
+}
+
+// adatsorok: balra igazítva, fix dátum/idő formátum
+function formatRows_(sh) {
+  const n = sh.getMaxRows() - 1;
+  sh.getRange(2, 1, n, COLS.length).setHorizontalAlignment('left');
+  sh.getRange(2, C['Dátum'], n, 1).setNumberFormat('yyyy-mm-dd');
+  sh.getRange(2, C['Időpont'], n, 1).setNumberFormat('@');
+  sh.getRange(2, C['Telefon'], n, 1).setNumberFormat('@');
+  sh.getRange(2, C['Beérkezett'], n, 1).setNumberFormat('yyyy-mm-dd hh:mm');
+}
+
+// dátum, majd időpont szerint
+function sortMain_(sh) {
+  const last = sh.getLastRow();
+  if (last > 2) sh.getRange(2, 1, last - 1, COLS.length).sort([{ column: C['Dátum'], ascending: true }, { column: C['Időpont'], ascending: true }]);
+}
+
+function today_() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+
+// régi elrendezés → új (a fejléc szövege alapján, így a régi oszlopsorrendtől független)
+function migrate_(ss, sh) {
+  const lastC = Math.max(sh.getLastColumn(), 1), last = sh.getLastRow();
+  if (last < 1) return;
+  const head = sh.getRange(1, 1, 1, lastC).getValues()[0].map(h => String(h).trim());
+  const same = COLS.every((c, i) => head[i] === LABELS[c]) && head.slice(COLS.length).every(h => !h);
+  if (same) return;
+
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH.mm');
+  sh.copyTo(ss).setName('Mentés 备份 ' + stamp).hideSheet();
+
+  const keys = ['Beérkezett', 'Dátum', 'Időpont', 'Létszám', 'Név', 'Telefon', 'Email', 'Egyéb kérés', 'Nyelv', 'Állapot', 'Kezelte', 'Belső megjegyzés', 'Azonosító'];
+  const idx = {};
+  head.forEach((h, i) => { const k = keys.find(k => h === k || h.startsWith(k + ' ')); if (k && !(k in idx)) idx[k] = i; });
+  const toStatus = v => OLD_STATUS[v] || (Object.values(STATUS).includes(v) ? v : '');
+  const t0 = today_();
+  const out = [];
+  if (last > 1) {
+    sh.getRange(2, 1, last - 1, lastC).getValues().forEach(r => {
+      const g = k => (k in idx ? r[idx[k]] : '');
+      const d = g('Dátum');
+      if (!(d instanceof Date) || d.getFullYear() < 2000 || d < t0) return;   // múltbeli / elcsúszott / üres sor
+      let note = String(g('Egyéb kérés') || '').trim();
+      let st = toStatus(String(g('Állapot') || '').trim()) || STATUS.NEW;
+      const inNote = toStatus(note);                // az állapotot tévesen a megjegyzés oszlopban állították
+      if (inNote) { if (st === STATUS.NEW) st = inNote; note = ''; }
+      const row = new Array(COLS.length).fill('');
+      const put = (k, v) => { row[C[k] - 1] = v; };
+      put('Dátum', d); put('Időpont', fmtTime_(g('Időpont'))); put('Név', g('Név')); put('Létszám', g('Létszám'));
+      put('Telefon', "'" + String(g('Telefon')).replace(/^'/, '')); put('Email', g('Email')); put('Egyéb kérés', note);
+      put('Állapot', st); put('Beérkezett', g('Beérkezett')); put('Nyelv', g('Nyelv')); put('Azonosító', g('Azonosító'));
+      out.push(row);
+    });
+  }
   sh.clear();
-  const src = `'${CFG.SHEET}'`;
-  sh.getRange('A1').setFormula(
-    `=IFERROR(SORT(FILTER({${src}!C2:C,${src}!D2:D,${src}!E2:E,${src}!F2:F,${src}!H2:H,${src}!J2:J},${src}!B2:B=${dayExpr},${src}!J2:J<>"${STATUS.NO}"),1,TRUE),"Nincs foglalás · 暂无订单")`);
-  sh.insertRowBefore(1);
-  sh.getRange(1, 1, 1, 6).setValues([['Időpont 时间', 'Létszám 人数', 'Név 姓名', 'Telefon 电话', 'Egyéb kérés 备注', 'Állapot 状态']])
-    .setFontWeight('bold').setBackground('#0c0b0a').setFontColor('#e8dcc4');
-  sh.setFrozenRows(1);
+  sh.clearConditionalFormatRules();
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
+  sh.getRange(1, 1, 1, COLS.length).setValues([COLS.map(c => LABELS[c])]);
+  if (out.length) sh.getRange(2, 1, out.length, COLS.length).setValues(out);
+  sortMain_(sh);
 }
 
 /* =========================================================
-   5. GDPR: 90 napnál régebbi foglalások törlése (naponta 4:00)
+   5. Minden éjjel (0:10): elmúlt napok foglalásainak törlése, 7 napi lap
    ========================================================= */
-function cleanup() {
+function daily() {
   const sh = sheet_();
   const last = sh.getLastRow();
-  if (last < 2) return;
-  const limit = new Date(); limit.setHours(0, 0, 0, 0); limit.setDate(limit.getDate() - CFG.RETENTION_DAYS);
-  const dates = sh.getRange(2, C['Dátum'], last - 1, 1).getValues();
-  for (let i = dates.length - 1; i >= 0; i--) {
-    const d = dates[i][0];
-    if (d instanceof Date && d < limit) sh.deleteRow(i + 2);
+  const t0 = today_();
+  if (last > 1) {
+    const dates = sh.getRange(2, C['Dátum'], last - 1, 1).getValues();
+    for (let i = dates.length - 1; i >= 0; i--) {
+      const d = dates[i][0];
+      if (d instanceof Date && d < t0) sh.deleteRow(i + 2);
+    }
   }
+  ensureDayTabs_();
+}
+
+// a következő 7 nap lapjai: a régieket törli, a hiányzókat létrehozza, sorrendbe teszi
+function ensureDayTabs_() {
+  const ss = SpreadsheetApp.getActive();
+  const tz = Session.getScriptTimeZone();
+  const t0 = today_();
+  const want = [];
+  for (let i = 0; i < CFG.DAY_TABS; i++) {
+    const d = new Date(t0); d.setDate(d.getDate() + i);
+    want.push({ name: Utilities.formatDate(d, tz, 'MM.dd'), d });
+  }
+  const names = want.map(w => w.name);
+  ss.getSheets().forEach(s => { if (DAY_TAB.test(s.getName()) && !names.includes(s.getName())) ss.deleteSheet(s); });
+  want.forEach((w, i) => { if (!ss.getSheetByName(w.name)) buildDayTab_(ss.insertSheet(w.name, i + 1), w.d); });
+  // sorrend: fő lap, majd a napok
+  want.forEach((w, i) => {
+    const s = ss.getSheetByName(w.name);
+    if (s.getIndex() !== i + 2) { ss.setActiveSheet(s); ss.moveActiveSheet(i + 2); }
+  });
+}
+
+function buildDayTab_(s, d) {
+  s.clear();
+  const src = `'${CFG.SHEET}'`;
+  const col = k => { const L = String.fromCharCode(64 + C[k]); return `${src}!${L}2:${L}`; };
+  const day = `DATE(${d.getFullYear()},${d.getMonth() + 1},${d.getDate()})`;
+  s.getRange(1, 1, 1, DAY_COLS.length).setValues([DAY_COLS.map(c => LABELS[c])]);
+  styleHeader_(s.getRange(1, 1, 1, DAY_COLS.length));
+  s.getRange('A2').setFormula(
+    `=IFERROR(SORT(FILTER({${DAY_COLS.map(col).join(',')}},${col('Dátum')}=${day},${col('Állapot')}<>"${STATUS.NO}"),1,TRUE),"Nincs foglalás · 暂无订单")`);
+  s.setFrozenRows(1);
+  s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length).setHorizontalAlignment('left');
+  s.getRange(2, 1, s.getMaxRows() - 1, 1).setNumberFormat('@');
+  [80, 170, 80, 140, 260, 160].forEach((w, i) => s.setColumnWidth(i + 1, w));
 }
 
 function findDuplicate_(sh, b) {
   const last = sh.getLastRow();
   if (last < 2) return '';
-  const n = Math.min(40, last - 1);
-  const rows = sh.getRange(last - n + 1, 1, n, COLS.length).getValues();
+  const rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
   const since = Date.now() - DEDUPE_MINUTES * 60000;
   const day = Utilities.formatDate(b.dateObj, 'Europe/Budapest', 'yyyy-MM-dd');
   for (const v of rows) {
