@@ -209,6 +209,7 @@ function onOpen() {
     .addItem('✕ Elutasítás küldése · 发送拒绝', 'menuReject')
     .addSeparator()
     .addItem('Beállítás / frissítés · 设置/更新', 'setup')
+    .addItem('Táblázat javítása · 修复表格', 'repairSheet')
     .addToUi();
 }
 function menuConfirm() { actOnSelection_('confirm'); }
@@ -335,4 +336,57 @@ function findDuplicate_(sh, b) {
 function sheet_() {
   const ss = SpreadsheetApp.getActive();
   return ss.getSheetByName(CFG.SHEET) || ss.insertSheet(CFG.SHEET, 0);
+}
+
+/* =========================================================
+   5. Egyszeri javítás: elcsúszott sorok és rossz oszlopba írt állapot
+   - előtte teljes biztonsági másolat készül („Mentés 备份 …” lap)
+   - a régi, elcsúszott sorok (Időpont helyén 1899-es dátum) a „Régi sorok 旧行” lapra kerülnek
+   - ha az állapotot a H (Egyéb kérés) oszlopban állították, átkerül a J (Állapot) oszlopba
+   - a H oszlopról és a többi nem-állapot oszlopról lekerül a legördülő lista
+   ========================================================= */
+function repairSheet() {
+  const ui = SpreadsheetApp.getUi();
+  if (ui.alert('Táblázat javítása · 修复表格',
+    'Előtte biztonsági másolat készül. Folytatja?\n会先自动备份整张表，然后修复。继续吗？', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  const ss = SpreadsheetApp.getActive();
+  const sh = sheet_();
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+  sh.copyTo(ss).setName('Mentés 备份 ' + stamp);
+
+  const last = sh.getLastRow();
+  const res = { archived: 0, moved: 0, blank: 0 };
+  if (last > 1) {
+    const vals = sh.getRange(2, 1, last - 1, COLS.length).getValues();
+    const toStatus = v => OLD_STATUS[v] || (Object.values(STATUS).includes(v) ? v : '');
+    const oldRows = [], drop = [];
+    vals.forEach((row, i) => {
+      const r = i + 2;
+      const b = row[C['Dátum'] - 1];
+      const empty = row.every((v, j) => j === C['Egyéb kérés'] - 1 || j === C['Állapot'] - 1 || v === '' || v === null);
+      if (empty) { drop.push(r); res.blank++; return; }
+      if (b instanceof Date && b.getFullYear() < 1950) { oldRows.push(row); drop.push(r); res.archived++; return; }
+      const h = String(row[C['Egyéb kérés'] - 1] || '').trim();
+      const st = toStatus(h);
+      if (st) {
+        const j = String(row[C['Állapot'] - 1] || '').trim();
+        if (!j || j === STATUS.NEW || j === 'Új') sh.getRange(r, C['Állapot']).setValue(st);
+        sh.getRange(r, C['Egyéb kérés']).setValue('');
+        res.moved++;
+      }
+    });
+    if (oldRows.length) {
+      const arc = ss.getSheetByName('Régi sorok 旧行') || ss.insertSheet('Régi sorok 旧行');
+      if (arc.getLastRow() === 0) arc.appendRow(['Ezek a sorok elcsúsztak (oszlopok nem stimmelnek) – csak olvasásra · 这些是错位的旧行，仅供查看']);
+      arc.getRange(arc.getLastRow() + 1, 1, oldRows.length, COLS.length).setValues(oldRows);
+    }
+    drop.reverse().forEach(r => sh.deleteRow(r));
+  }
+  // legördülő csak az Állapot oszlopban maradjon
+  const rows = sh.getMaxRows() - 1;
+  sh.getRange(2, 1, rows, C['Állapot'] - 1).clearDataValidations();
+  sh.getRange(2, C['Állapot'] + 1, rows, COLS.length - C['Állapot']).clearDataValidations();
+  setup();
+  ui.alert('Kész · 完成',
+    `Áthelyezett állapot: ${res.moved} · 状态移到J列: ${res.moved}\nRégi sorok archiválva: ${res.archived} · 旧行移走: ${res.archived}\nÜres sor törölve: ${res.blank} · 删除空行: ${res.blank}`, ui.ButtonSet.OK);
 }
