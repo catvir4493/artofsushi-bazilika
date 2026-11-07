@@ -37,26 +37,25 @@
 
 ## 日常使用
 
-- 新订桌：状态「Új」，橙色。
-- 选中那一行任意格子 → **Foglalás → ✓ Visszaigazolás küldése**：给客人发确认邮件，状态变「Visszaigazolva」。
-- **✕ Elutasítás küldése**：发「没有空桌」的邮件，状态变「Elutasítva」。
-- 用餐后可以手动把状态改成「Megjelent」（已到店）或「Nem jelent meg」（未到店）。
-- 店里通知邮件里直接点「回复」就是回给客人。
-- 客人在英文页面下单，所有邮件自动用英文。
+- **Foglalások（总预约单）**：所有未来的预约，按日期、时间自动排序。新订单状态「Új 新订单」，橙色。
+- 选中那一行任意格子 → **Foglalás 订桌 → ✓ Visszaigazolás küldése · 发送确认**：给客人发确认邮件，状态变「Visszaigazolva 已确认」。
+- **✕ Elutasítás küldése · 发送拒绝**：发“没有空桌”的邮件，状态变「Elutasítva 已拒绝」，这条不再出现在日期表里。
+- **日期表（如 11.08）**：从今天起未来 7 天每天一张，实时读取总表，只用来看和抄本子；修改都在总表里改。
+- 每天 0:10 自动删掉已经过去那天的预约和日期表，并补上第 7 天。
+- 店里通知邮件里直接点「回复」就是回给客人。客人在英文页面下单，所有邮件自动用英文。
 
-## 字段
+## 字段（总预约单）
 
 | 列 | 说明 |
 |---|---|
-| Beérkezett | 提交时间 |
-| Dátum / Időpont / Létszám | 用餐日期、时间、人数 |
-| Név / Telefon / Email | 客人信息 |
+| Dátum / Időpont | 用餐日期、时间 |
+| Név / Létszám | 姓名、人数 |
+| Telefon / Email | 电话、邮箱 |
 | Egyéb kérés | 客人备注 |
-| Nyelv | HU / EN，决定邮件语言 |
-| Állapot | Új · Visszaigazolva · Elutasítva · Megjelent · Nem jelent meg |
-| Kezelte | 谁发的确认 |
-| Belső megjegyzés | 店内备注，客人看不到 |
-| Azonosító | 订单编号 |
+| Állapot | 状态：Új · Visszaigazolva · Elutasítva · Megjelent · Nem jelent meg |
+| Beérkezett / Nyelv / Azonosító | 提交时间、语言、编号，**默认隐藏**（右键列标 → 取消隐藏） |
+
+不要手动删除或移动列，否则脚本会写错位置。
 
 ## 防垃圾
 
