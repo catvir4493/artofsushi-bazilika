@@ -278,6 +278,7 @@ function setup() {
   sh.hideColumns(C[HIDDEN_FROM], COLS.length - C[HIDDEN_FROM] + 1);
 
   OLD_TABS.forEach(n => { const o = ss.getSheetByName(n); if (o) ss.deleteSheet(o); });
+  ss.getSheets().forEach(s => { if (DAY_TAB.test(s.getName())) ss.deleteSheet(s); }); // napi lapok újraépítése (formázás)
   if (sh.getIndex() !== 1) { ss.setActiveSheet(sh); ss.moveActiveSheet(1); }
   daily();
 
@@ -291,10 +292,10 @@ function styleHeader_(rng) {
   rng.setFontWeight('bold').setBackground(HEAD_BG).setFontColor(HEAD_FG).setHorizontalAlignment('center').setVerticalAlignment('middle');
 }
 
-// adatsorok: jobbra igazítva, fix dátum/idő formátum
+// adatsorok: balra igazítva, fix dátum/idő formátum
 function formatRows_(sh) {
   const n = sh.getMaxRows() - 1;
-  sh.getRange(2, 1, n, COLS.length).setHorizontalAlignment('right');
+  sh.getRange(2, 1, n, COLS.length).setHorizontalAlignment('left');
   sh.getRange(2, C['Dátum'], n, 1).setNumberFormat('yyyy-mm-dd');
   sh.getRange(2, C['Időpont'], n, 1).setNumberFormat('@');
   sh.getRange(2, C['Telefon'], n, 1).setNumberFormat('@');
@@ -398,7 +399,7 @@ function buildDayTab_(s, d) {
   s.getRange('A2').setFormula(
     `=IFERROR(SORT(FILTER({${DAY_COLS.map(col).join(',')}},${col('Dátum')}=${day},${col('Állapot')}<>"${STATUS.NO}"),1,TRUE),"Nincs foglalás · 暂无订单")`);
   s.setFrozenRows(1);
-  s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length).setHorizontalAlignment('right');
+  s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length).setHorizontalAlignment('left');
   s.getRange(2, 1, s.getMaxRows() - 1, 1).setNumberFormat('@');
   [80, 170, 80, 140, 260, 160].forEach((w, i) => s.setColumnWidth(i + 1, w));
 }
