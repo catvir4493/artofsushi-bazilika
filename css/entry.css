@@ -45,7 +45,7 @@ em{font-style:italic;font-weight:300;color:var(--gold)}
 /* ---------- Választóvonal ---------- */
 .divider{position:relative;flex:0 0 0;z-index:5;pointer-events:none}
 .divider__line{position:absolute;left:0;right:0;top:-.5px;height:1px;background:var(--gold);opacity:.55;transform:scaleX(0);transition:transform 1.3s var(--ease-io) .15s,opacity .6s}
-.divider__mark{position:absolute;left:50%;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--gold);color:var(--gold);font-size:19px;
+.divider__mark{position:absolute;left:50%;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--gold);color:var(--gold);font-size:19px;padding:0 8px;
   opacity:0;transform:scale(.6) rotate(-8deg);transition:opacity 1s var(--ease) .9s,transform 1.2s var(--ease) .9s}
 
 /* ---------- Nyitó animáció ---------- */
@@ -132,9 +132,13 @@ em{font-style:italic;font-weight:300;color:var(--gold)}
   .shop__brand{margin-bottom:6px;font-size:9.5px}
   .shop__index{font-size:9.5px;letter-spacing:.3em}
   .shop__media img{object-position:center}
+  .shop--new .shop__media img{object-position:26% 50%}
+  .shop--old .shop__media img{object-position:50% 50%}
 }
 
 /* ---------- Csökkentett mozgás ---------- */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.01ms!important;transition-delay:0s!important;animation:none!important}
 }
+
+.fishmark{display:block;width:100%;height:auto;color:var(--gold);overflow:visible}

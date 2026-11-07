@@ -13,7 +13,7 @@ import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const OUT = path.join(ROOT, 'dist');
-const SKIP = new Set(['.git', '.github', 'dist', 'node_modules', 'scripts', 'content', 'apps-script', '.pages.yml', 'README.md', 'download-images.ps1', 'package.json']);
+const SKIP = new Set(['.git', '.github', 'dist', 'node_modules', 'scripts', 'content', 'apps-script', '.pages.yml', 'README.md', 'DEPLOY.md', 'download-images.ps1', 'package.json']);
 const PAGES = ['index.html', 'bazilika.html'];
 
 /* ---------- tartalom ---------- */

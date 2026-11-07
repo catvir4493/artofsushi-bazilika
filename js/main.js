@@ -95,36 +95,26 @@
      Betöltő + nyitó animáció
      ========================================================= */
   const loader = $('.loader');
-  const countEl = $('.loader__count span');
-  const barEl = $('.loader__bar span');
   const heroImg = $('.hero__frame img');
   const intro = { v: reduce ? 1 : 0, done: reduce };
-  let loadTarget = 0, loadShown = 0, finished = false;
-  const t0 = performance.now();
+  let finished = false;
   body.classList.add('is-locked');
 
-  const critical = [heroImg, ...$$('.about img'), ...$$('.feature__img img')];
-  let loadedCount = 0;
-  const bump = () => { loadedCount++; loadTarget = loadedCount / critical.length; };
-  critical.forEach(img => {
-    if (img.complete && img.naturalWidth) bump();
-    else {
-      img.addEventListener('load', bump, { once: true });
-      img.addEventListener('error', () => { img._err = (img._err || 0) + 1; if (img._err >= 2) bump(); });
-    }
+  // nincs számláló: a sötét függöny addig marad, amíg a nyitókép betölt
+  // (legalább 0,4 s, legfeljebb 2 s), így a kezdőoldal sötét átmenete folytatódik
+  const heroReady = new Promise(r => {
+    if (heroImg.complete && heroImg.naturalWidth) r();
+    else { heroImg.addEventListener('load', r, { once: true }); heroImg.addEventListener('error', r, { once: true }); }
   });
-  setTimeout(() => { loadTarget = 1; }, 4500);
+  const fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+  const minWait = new Promise(r => setTimeout(r, 400));
+  Promise.race([
+    Promise.all([heroReady, fontsReady, minWait]),
+    new Promise(r => setTimeout(r, 2000))
+  ]).then(finishLoader);
 
-  function tickLoader(now) {
-    if (finished) return;
-    const minT = clamp((now - t0) / 1900);
-    loadShown = lerp(loadShown, Math.min(loadTarget, minT), .08);
-    if (Math.min(loadTarget, minT) >= 1 && loadShown > .995) loadShown = 1;
-    countEl.textContent = String(Math.round(loadShown * 100)).padStart(3, '0');
-    barEl.style.transform = `scaleX(${loadShown})`;
-    if (loadShown >= 1) finishLoader();
-  }
   function finishLoader() {
+    if (finished) return;
     finished = true;
     scrollTo(0, 0); smooth.target = smooth.current = 0;
     root.classList.add('loaded');
@@ -140,7 +130,7 @@
     setTimeout(() => { body.classList.remove('is-locked'); }, 1300);
     setTimeout(() => loader.classList.add('done'), 1700);
   }
-  if (reduce) { loadShown = 1; finishLoader(); }
+  if (reduce) finishLoader();
 
   /* =========================================================
      Szövegbontás
@@ -391,7 +381,6 @@
      ========================================================= */
   let prevY = scrollY;
   function loop(now) {
-    tickLoader(now);
     smooth.tick();
     const y = scrollY;
     const vel = y - prevY; prevY = y;
@@ -563,6 +552,9 @@
   const msg = $('.form-msg', form);
   const pad = n => String(n).padStart(2, '0');
   const today = new Date();
+  const syncDate = () => date.parentElement.classList.toggle('is-empty', !date.value);
+  ['input', 'change', 'blur'].forEach(e => date.addEventListener(e, syncDate));
+  syncDate();
   date.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   // időpontok félóránként, nyitástól zárás előtt 2 óráig
   for (let x = Math.ceil(CONFIG.OPEN_HOUR * 2) / 2; x <= CONFIG.CLOSE_HOUR - 2; x += .5) {
@@ -584,8 +576,11 @@
     sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; sc.async = true; sc.defer = true;
     document.head.appendChild(sc);
   }
+  const submitBtn = $('button[type="submit"]', form);
+  let sending = false;
   form.addEventListener('submit', async e => {
     e.preventDefault();
+    if (sending) return;
     msg.className = 'form-msg'; msg.textContent = '';
     let ok = true;
     $$('input[required], select[required]', form).forEach(inp => {
@@ -604,6 +599,10 @@ Dátum: ${data.date} ${data.time}
 Létszám: ${data.guests} fő
 Egyéb kérés: ${data.note || '-'}
 Nyelv: ${T('langName')}`;
+    sending = true;
+    const btnLabel = submitBtn.textContent;
+    submitBtn.disabled = true; submitBtn.setAttribute('aria-busy', 'true');
+    submitBtn.textContent = T('sending');
     try {
       if (CONFIG.FORM_ENDPOINT) {
         // text/plain: így a böngésző nem küld előzetes CORS-kérést az Apps Scriptnek
@@ -624,11 +623,15 @@ Nyelv: ${T('langName')}`;
       msg.textContent = (CONFIG.FORM_ENDPOINT || CONFIG.BOOKING_EMAIL)
         ? T('sent', data.name, data.date, data.time, guests, CONFIG.PHONE)
         : T('call', data.name, data.date, data.time, guests, CONFIG.PHONE);
-      form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00';
+      form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00'; syncDate();
       if (window.turnstile) try { turnstile.reset(); } catch {}
     } catch (err) {
       msg.classList.add('err');
       msg.textContent = T('fail', CONFIG.PHONE);
+    } finally {
+      sending = false;
+      submitBtn.disabled = false; submitBtn.removeAttribute('aria-busy');
+      submitBtn.textContent = btnLabel;
     }
   });
 
