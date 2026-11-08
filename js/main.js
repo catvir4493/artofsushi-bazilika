@@ -94,6 +94,10 @@
   /* =========================================================
      Betöltő + nyitó animáció
      ========================================================= */
+  // közvetlen hivatkozás (pl. Google Térkép → /foglalas → bazilika.html#foglalas):
+  // nincs nyitó animáció és nincs végiggörgetés, azonnal a célszakasznál nyílik az oldal
+  const deepHash = /^#[\w-]+$/.test(location.hash) && location.hash !== '#top' ? location.hash : '';
+  const deepEl = deepHash ? document.getElementById(deepHash.slice(1)) : null;
   const loader = $('.loader');
   const heroImg = $('.hero__frame img');
   const intro = { v: reduce ? 1 : 0, done: reduce };
@@ -109,14 +113,42 @@
   const fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
   const minWait = new Promise(r => setTimeout(r, 400));
   Promise.race([
-    Promise.all([heroReady, fontsReady, minWait]),
+    Promise.all(deepEl ? [fontsReady, minWait] : [heroReady, fontsReady, minWait]),
     new Promise(r => setTimeout(r, 2000))
   ]).then(finishLoader);
+
+  function jumpTo(el) {
+    const y = clamp(el.getBoundingClientRect().top + scrollY - (el.id === 'foglalas' ? 0 : 20), 0, smooth.max());
+    // a behavior:'instant' felülírja a CSS scroll-behavior:smooth-ot is
+    scrollTo({ top: y, left: 0, behavior: 'instant' });
+    smooth.target = smooth.current = scrollY; smooth.running = false;
+  }
+  function holdAt(el) {
+    // amíg képek/betűk töltődnek, a fölötte lévő tartalom magassága változhat:
+    // rövid ideig a célon tartjuk, de az első felhasználói görgetésre elengedjük
+    let hold = true;
+    const release = () => { hold = false; ro && ro.disconnect(); };
+    ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(t => addEventListener(t, release, { once: true, passive: true }));
+    const ro = 'ResizeObserver' in window ? new ResizeObserver(() => hold && jumpTo(el)) : null;
+    ro && ro.observe(document.body);
+    [120, 400, 900].forEach(d => setTimeout(() => hold && jumpTo(el), d));
+    addEventListener('load', () => hold && jumpTo(el), { once: true });
+    setTimeout(release, 2500);
+  }
 
   function finishLoader() {
     if (finished) return;
     finished = true;
-    scrollTo(0, 0); smooth.target = smooth.current = 0;
+    if (deepEl) {
+      intro.v = 1; intro.done = true;
+      root.classList.add('loaded', 'intro-in');
+      body.classList.remove('is-locked');
+      jumpTo(deepEl);
+      holdAt(deepEl);
+      setTimeout(() => loader.classList.add('done'), 1500);
+      return;
+    }
+    scrollTo({ top: 0, left: 0, behavior: 'instant' }); smooth.target = smooth.current = 0;
     root.classList.add('loaded');
     setTimeout(() => {
       root.classList.add('intro-in');
