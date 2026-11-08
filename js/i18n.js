@@ -34,8 +34,8 @@
     'Görgessen': 'Scroll',
 
     // rólunk
-    'Kizárólag Olaszországból érkező, prémium friss tengeri alapanyagok – autentikus japán kézművességgel, <em>a sushi lakomák csúcsán.</em>':
-      'Premium fresh seafood, sourced exclusively from Italy – prepared with authentic Japanese craftsmanship, <em>sushi feasting at its finest.</em>',
+    'Gondosan válogatott, prémium friss alapanyagok – autentikus japán kézművességgel, <em>a sushi lakomák csúcsán.</em>':
+      'Carefully selected premium fresh ingredients – prepared with authentic Japanese craftsmanship, <em>sushi feasting at its finest.</em>',
     'A sushi művészete': 'The art of sushi',
     'Üdvözöljük az Art of Sushi-ban – fedezze fel a sushi lakomák csúcsát! Alapanyagainkat autentikus japán konyhaművészettel dolgozzuk fel, hogy a legkiválóbb ízeket nyújtsuk Önnek.':
       'Welcome to Art of Sushi – discover sushi feasting at its finest. Every ingredient is prepared with authentic Japanese culinary craft, to bring you the finest flavours.',
