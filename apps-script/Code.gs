@@ -40,7 +40,6 @@ const DAY_COLS = ['Időpont', 'Név', 'Létszám', 'Telefon', 'Egyéb kérés', 
 const DAY_TAB = /^\d{2}\.\d{2}$/;      // pl. „11.08”
 const OLD_TABS = ['Ma', 'Holnap', 'Ma 今天', 'Holnap 明天', 'Régi sorok 旧行'];
 const HEAD_BG = '#0c0b0a', HEAD_FG = '#e8dcc4';
-const DEDUPE_MINUTES = 10;
 
 /* ---------- Beállítások (Script properties) ----------
    NOTIFY_EMAIL      – ide jön az értesítő (pl. artofsushi.szentistvan@gmail.com); üresen: a táblázat tulajdonosa
@@ -68,9 +67,11 @@ function doPost(e) {
     try {
       const sh = sheet_();
       migrate_(SpreadsheetApp.getActive(), sh); // ha még a régi elrendezés van, előbb átírja (csak egyszer)
-      // ugyanaz a foglalás kétszer (dupla kattintás): csak egyszer rögzítjük
+      // ugyanaz a foglalás még egyszer (dupla kattintás, újraküldés, újratöltés után): nem lesz új sor, nincs új e-mail
       const dup = findDuplicate_(sh, b);
-      if (dup) return json_({ ok: true, id: dup, duplicate: true });
+      if (dup.id) return json_({ ok: true, id: dup.id, duplicate: true });
+      // ugyanaz a vendég ugyanarra a napra más időpontra: rögzítjük, de jelöljük
+      if (dup.otherTimes.length) b.flag = `⚠ Ugyanaz a vendég aznap már: ${dup.otherTimes.join(', ')} · 同一客人当天已订 ${dup.otherTimes.join(', ')}`;
       const row = new Array(COLS.length).fill('');
       const put = (k, v) => { row[C[k] - 1] = v; };
       put('Dátum', b.dateObj);
@@ -79,7 +80,7 @@ function doPost(e) {
       put('Létszám', b.guests);
       put('Telefon', "'" + b.phone); // szövegként, különben a „+36…” képletnek látszik
       put('Email', b.email);
-      put('Egyéb kérés', b.note);
+      put('Egyéb kérés', b.flag ? b.flag + (b.note ? ' | ' + b.note : '') : b.note);
       put('Állapot', STATUS.NEW);
       put('Beérkezett', new Date());
       put('Nyelv', b.lang.toUpperCase());
@@ -127,7 +128,9 @@ function clean_(d) {
   const dateObj = new Date(y, m - 1, dd);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   if (dateObj < today) return null;
-  const id = Utilities.getUuid().slice(0, 8).toUpperCase();
+  // az űrlap saját azonosítót küld (ugyanaz marad újrapróbálkozáskor) → így ugyanaz a kérés csak egyszer kerül be
+  const rid = String(d.rid || '').toUpperCase();
+  const id = /^[A-Z0-9]{8,16}$/.test(rid) ? rid : Utilities.getUuid().slice(0, 8).toUpperCase();
   return { name, email, phone, date, time, note, guests, lang, dateObj, id };
 }
 
@@ -194,6 +197,7 @@ function notifyRestaurant_(b) {
   const url = SpreadsheetApp.getActive().getUrl();
   const body = [
     `Új foglalás (${b.id})`, '',
+    ...(b.flag ? [b.flag, 'Lehet, hogy időpontot akar módosítani – érdemes rákérdezni. 可能是想改时间，建议先问一下客人。', ''] : []),
     `Dátum: ${fmtDate_(b.dateObj, 'hu')} ${b.time}`,
     `Létszám: ${b.guests} fő`,
     `Név: ${b.name}`, `Telefon: ${b.phone}`, `Email: ${b.email}`,
@@ -202,7 +206,7 @@ function notifyRestaurant_(b) {
     url, '',
     `Erre a levélre válaszolva közvetlenül a vendégnek ír.`
   ].join('\n');
-  MailApp.sendEmail({ to, subject: `Új foglalás: ${b.date} ${b.time}, ${b.guests} fő – ${b.name}`, body, replyTo: b.email, name: 'Foglalás – weboldal' });
+  MailApp.sendEmail({ to, subject: `${b.flag ? '⚠ ' : ''}Új foglalás: ${b.date} ${b.time}, ${b.guests} fő – ${b.name}`, body, replyTo: b.email, name: 'Foglalás – weboldal' });
 }
 
 /* =========================================================
@@ -213,6 +217,7 @@ function onOpen() {
     .addItem('✓ Visszaigazolás küldése · 发送确认', 'menuConfirm')
     .addItem('✕ Elutasítás küldése · 发送拒绝', 'menuReject')
     .addSeparator()
+    .addItem('Ismétlődő foglalások törlése · 删除重复订单', 'removeDuplicates')
     .addItem('Beállítás / frissítés · 设置/更新', 'setup')
     .addToUi();
 }
@@ -404,20 +409,60 @@ function buildDayTab_(s, d) {
   [80, 170, 80, 140, 260, 160].forEach((w, i) => s.setColumnWidth(i + 1, w));
 }
 
+function ymd_(d) { return Utilities.formatDate(d, 'Europe/Budapest', 'yyyy-MM-dd'); }
+// telefonszám összevetéshez: csak az utolsó 9 számjegy (+36 30… = 06 30… = 30…)
+function phoneKey_(p) { return String(p || '').replace(/\D/g, '').slice(-9); }
+// ugyanaz a vendég: azonos e-mail VAGY azonos telefonszám
+function sameGuest_(email, phone, b) {
+  const em = String(email || '').trim().toLowerCase(), ph = phoneKey_(phone);
+  return (!!em && em === String(b.email || '').trim().toLowerCase()) || (ph.length >= 6 && ph === phoneKey_(b.phone));
+}
+
+// { id: meglévő foglalás azonosítója, ha ez ugyanaz a foglalás; otherTimes: ugyanaz a vendég aznap más időpontokra }
 function findDuplicate_(sh, b) {
+  const out = { id: '', otherTimes: [] };
   const last = sh.getLastRow();
-  if (last < 2) return '';
+  if (last < 2) return out;
   const rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
-  const since = Date.now() - DEDUPE_MINUTES * 60000;
-  const day = Utilities.formatDate(b.dateObj, 'Europe/Budapest', 'yyyy-MM-dd');
+  const day = ymd_(b.dateObj);
   for (const v of rows) {
-    const got = v[C['Beérkezett'] - 1], d = v[C['Dátum'] - 1];
-    if (!(got instanceof Date) || got.getTime() < since || !(d instanceof Date)) continue;
-    if (String(v[C['Email'] - 1]).toLowerCase() === b.email.toLowerCase()
-      && Utilities.formatDate(d, 'Europe/Budapest', 'yyyy-MM-dd') === day
-      && fmtTime_(v[C['Időpont'] - 1]) === b.time) return v[C['Azonosító'] - 1] || 'dup';
+    const get = n => v[C[n] - 1];
+    if (b.id && String(get('Azonosító')) === b.id) { out.id = b.id; return out; }
+    const d = get('Dátum');
+    if (!(d instanceof Date) || ymd_(d) !== day) continue;
+    if (get('Állapot') === STATUS.NO) continue;          // elutasított foglalás után újra lehet foglalni
+    if (!sameGuest_(get('Email'), get('Telefon'), b)) continue;
+    const t = fmtTime_(get('Időpont'));
+    if (t === b.time) { out.id = String(get('Azonosító') || 'dup'); return out; }
+    if (out.otherTimes.indexOf(t) < 0) out.otherTimes.push(t);
   }
-  return '';
+  return out;
+}
+
+// Menü: a már bekerült ismétlődő sorok törlése (azonos nap + időpont + ugyanaz a vendég) — az elsőt (vagy a visszaigazoltat) megtartja
+function removeDuplicates() {
+  const ui = SpreadsheetApp.getUi();
+  const sh = sheet_();
+  const last = sh.getLastRow();
+  if (last < 2) { ui.alert('Nincs ismétlődő foglalás.\n没有重复订单。'); return; }
+  const rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
+  const get = (v, n) => v[C[n] - 1];
+  const kept = [], drop = [];
+  rows.forEach((v, i) => {
+    const d = get(v, 'Dátum');
+    if (!(d instanceof Date) || get(v, 'Állapot') === STATUS.NO) return;
+    const key = ymd_(d) + ' ' + fmtTime_(get(v, 'Időpont'));
+    const k = kept.find(x => x.key === key && sameGuest_(get(v, 'Email'), get(v, 'Telefon'), { email: get(x.v, 'Email'), phone: get(x.v, 'Telefon') }));
+    if (!k) { kept.push({ key, v, i }); return; }
+    // ha az ismétlés már vissza van igazolva, a régebbi pedig nem, akkor azt tartjuk meg
+    if (get(v, 'Állapot') === STATUS.OK && get(k.v, 'Állapot') !== STATUS.OK) { drop.push(k.i); k.v = v; k.i = i; }
+    else drop.push(i);
+  });
+  if (!drop.length) { ui.alert('Nincs ismétlődő foglalás.\n没有重复订单。'); return; }
+  const list = drop.map(i => `${ymd_(get(rows[i], 'Dátum'))} ${fmtTime_(get(rows[i], 'Időpont'))}  ${get(rows[i], 'Név')}`).join('\n');
+  if (ui.alert(`${drop.length} ismétlődő sor törlése (az eredeti megmarad):\n将删除 ${drop.length} 条重复订单（保留原来那条）：\n\n${list}`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  drop.sort((a, b) => b - a).forEach(i => sh.deleteRow(i + 2));
+  SpreadsheetApp.getActive().toast(`${drop.length} törölve · 已删除`, 'Foglalás', 4);
 }
 
 function sheet_() {

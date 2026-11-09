@@ -598,6 +598,7 @@
   let guests = 2;
   $$('.guests button', form).forEach(b => b.addEventListener('click', () => {
     guests = Math.min(30, Math.max(1, guests + +b.dataset.step));
+    if (!sending) rid = newRid();
     guestsOut.textContent = guests;
   }));
   if (CONFIG.TURNSTILE_SITEKEY) {
@@ -610,6 +611,15 @@
   }
   const submitBtn = $('button[type="submit"]', form);
   let sending = false;
+  // egy kitöltés = egy azonosító: ha a küldés megismétlődik (dupla kattintás, hiba utáni újrapróbálás),
+  // a szerver felismeri és nem rögzíti újra; ha a vendég bármit módosít, új azonosítót kap
+  const newRid = () => {
+    try { return Array.from(crypto.getRandomValues(new Uint8Array(5)), x => x.toString(16).padStart(2, '0')).join('').toUpperCase(); }
+    catch { return (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(-10).toUpperCase(); }
+  };
+  let rid = newRid();
+  form.addEventListener('input', () => { if (!sending) rid = newRid(); });
+  form.addEventListener('change', () => { if (!sending) rid = newRid(); });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (sending) return;
@@ -642,7 +652,7 @@ Nyelv: ${T('langName')}`;
           method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             name: data.name, email: data.email, phone: data.phone, date: data.date, time: data.time,
-            guests, note: data.note || '', lang: window.AOS_I18N ? AOS_I18N.lang : 'hu',
+            guests, note: data.note || '', rid, lang: window.AOS_I18N ? AOS_I18N.lang : 'hu',
             website: data.website || '', turnstile: data['cf-turnstile-response'] || ''
           })
         });
@@ -655,6 +665,7 @@ Nyelv: ${T('langName')}`;
       msg.textContent = (CONFIG.FORM_ENDPOINT || CONFIG.BOOKING_EMAIL)
         ? T('sent', data.name, data.date, data.time, guests, CONFIG.PHONE)
         : T('call', data.name, data.date, data.time, guests, CONFIG.PHONE);
+      rid = newRid();
       form.reset(); guests = 2; guestsOut.textContent = 2; time.value = '19:00'; syncDate();
       if (window.turnstile) try { turnstile.reset(); } catch {}
     } catch (err) {
