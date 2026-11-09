@@ -15,7 +15,7 @@
   }
   const CONFIG = {
     FORM_ENDPOINT: 'https://script.google.com/macros/s/AKfycbw9nIfru4UdiiONJ1XsQJ1xwW3wbNpZKvkx-0-eNhykKTWx2B0d_-Fsc4Gi-_ceLVKsQw/exec',
-    TURNSTILE_SITEKEY: '',
+    TURNSTILE_SITEKEY: '0x4AAAAAAF58oTpyjC6YDP_2',
     BOOKING_EMAIL: '',
     // nyitvatartás és telefon: a build a <html> elemre írja (content/info.json)
     PHONE: document.documentElement.dataset.phone || '+36 30 516 1606',
