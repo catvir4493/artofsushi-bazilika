@@ -10,6 +10,7 @@
 //   data-cms-if="kulcs"           → az elem csak akkor marad meg, ha a kulcs értéke igaz
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const OUT = path.join(ROOT, 'dist');
@@ -205,4 +206,13 @@ for (const p of PAGES) {
 }
 fs.writeFileSync(path.join(OUT, 'js', 'content-i18n.js'),
   `/* automatikusan készül (scripts/build.mjs) – ne szerkessze */\nwindow.AOS_TEXT_EXTRA = ${JSON.stringify(EXTRA, null, 1)};\nwindow.AOS_RUNTIME = ${JSON.stringify(runtime)};\n`);
+// gyorsítótár-ürítés: minden helyi CSS/JS hivatkozás ?v=<tartalom-hash>-t kap, így frissítés után a böngésző
+// biztosan az új fájlt tölti be (különben egy régi main.js pl. Turnstile nélkül küldené a foglalást)
+const ver = f => { try { return crypto.createHash('sha256').update(fs.readFileSync(path.join(OUT, f))).digest('hex').slice(0, 10); } catch { return ''; } };
+for (const f of fs.readdirSync(OUT).filter(f => f.endsWith('.html'))) {
+  const file = path.join(OUT, f);
+  const html = fs.readFileSync(file, 'utf8').replace(/(<(?:script|link)\b[^>]*?\s(?:src|href)=")(\/?)((?:js|css|fonts)\/[^"?#]+\.(?:js|css))"/g,
+    (m, pre, slash, rel) => { const v = ver(rel); return v ? `${pre}${slash}${rel}?v=${v}"` : m; });
+  fs.writeFileSync(file, html);
+}
 console.log(`Kész: dist/ (${PAGES.length} oldal, ${Object.keys(EXTRA).length} angol szövegpár)`);
