@@ -39,6 +39,8 @@ const OLD_STATUS = { 'Új': STATUS.NEW, 'Visszaigazolva': STATUS.OK, 'Elutasítv
 const DAY_COLS = ['Időpont', 'Név', 'Létszám', 'Telefon', 'Egyéb kérés', 'Állapot'];
 const DAY_TAB = /^\d{2}\.\d{2}$/;      // pl. „11.08”
 const OLD_TABS = ['Ma', 'Holnap', 'Ma 今天', 'Holnap 明天', 'Régi sorok 旧行'];
+const BACKUP = 'Törölt 已删除';         // rejtett lap: az automatikusan törölt régi foglalások másolata
+const BACKUP_DAYS = 90;                  // adatkezelési tájékoztató: a foglalás napja után 90 nappal törlés
 const HEAD_BG = '#0c0b0a', HEAD_FG = '#e8dcc4';
 
 /* ---------- Beállítások (Script properties) ----------
@@ -163,6 +165,11 @@ const TPL = {
   reject: {
     hu: { subject: 'Asztalfoglalás – sajnos nincs szabad asztal', lead: 'Köszönjük megkeresését. Sajnos a kért időpontra nincs szabad asztalunk:', foot: 'Szívesen segítünk másik időpontot találni. Válaszoljon erre a levélre vagy hívjon minket:' },
     en: { subject: 'Your booking request – no table available', lead: 'Thank you for your request. Unfortunately we have no table available at the requested time:', foot: 'We would be happy to find you another time. Please reply to this email or call us on' }
+  },
+  // ugyanaz a vendég ugyanarra a napra később más időpontot foglalt, és azt visszaigazoltuk → a régi időpont törölve
+  cancel: {
+    hu: { subject: 'Korábbi foglalása törölve', lead: b => `Mivel ugyanerre a napra új időpontot (${b.newTime}) igazoltunk vissza, az alábbi korábbi foglalását töröltük. Az új foglalás érvényes marad.`, foot: 'Ha mégis mindkét időpontra szüksége van, kérjük, válaszoljon erre a levélre vagy hívjon minket:' },
+    en: { subject: 'Your earlier booking has been cancelled', lead: b => `As we have confirmed your new time (${b.newTime}) for the same day, we have cancelled your earlier booking below. Your new booking stays as confirmed.`, foot: 'If you do need both times, please reply to this email or call us on' }
   }
 };
 const LBL = {
@@ -173,7 +180,8 @@ const LBL = {
 function esc_(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
 function sendGuest_(kind, b) {
-  const t = TPL[kind][b.lang], l = LBL[b.lang];
+  const T = TPL[kind][b.lang], l = LBL[b.lang];
+  const t = Object.assign({}, T, { lead: typeof T.lead === 'function' ? T.lead(b) : T.lead });
   const rows = [[l.date, fmtDate_(b.dateObj, b.lang)], [l.time, b.time], [l.guests, l.g(b.guests)], [l.addr, CFG.ADDRESS]];
   if (b.note && kind === 'received') rows.push([l.note, b.note]);
   const plain = [l.hello(b.name), '', t.lead, ...rows.map(r => `${r[0]}: ${r[1]}`), '', `${t.foot} ${CFG.PHONE}`, '', l.bye, CFG.RESTAURANT, CFG.SITE].join('\n');
@@ -246,7 +254,74 @@ function actOnSelection_(kind) {
   if (ui.alert(`${label.charAt(0).toUpperCase() + label.slice(1)} küld · 发送${zh}邮件:\n${b.name}, ${fmtDate_(b.dateObj, 'hu')} ${b.time}, ${b.guests} fő (${b.email})`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
   sendGuest_(kind, b);
   sh.getRange(r, C['Állapot']).setValue(kind === 'confirm' ? STATUS.OK : STATUS.NO);
-  SpreadsheetApp.getActive().toast('Elküldve · 已发送', 'Foglalás', 4);
+  const gone = kind === 'confirm' ? cancelEarlierSameDay_(sh, r) : [];
+  SpreadsheetApp.getActive().toast(gone.length
+    ? `Elküldve. Korábbi foglalás törölve (mentve: „${BACKUP}”): ${gone.join(', ')} · 已发送，同一天的旧预约已删除并备份：${gone.join(', ')}`
+    : 'Elküldve · 已发送', 'Foglalás', 8);
+}
+
+// A visszaigazolt sor (r) vendégének ugyanarra a napra KORÁBBAN beküldött foglalásai:
+// másolat a rejtett „Törölt” lapra → lemondó e-mail a vendégnek → sor törlése. Visszaadja a törölt időpontokat.
+function cancelEarlierSameDay_(sh, r) {
+  const last = sh.getLastRow();
+  const rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
+  const get = (v, n) => v[C[n] - 1];
+  const me = rows[r - 2];
+  const myDay = get(me, 'Dátum'), myGot = get(me, 'Beérkezett');
+  if (!(myDay instanceof Date) || !(myGot instanceof Date)) return [];
+  const guest = { email: get(me, 'Email'), phone: get(me, 'Telefon') };
+  const old = [];
+  rows.forEach((v, i) => {
+    if (i === r - 2) return;
+    const d = get(v, 'Dátum'), got = get(v, 'Beérkezett');
+    if (!(d instanceof Date) || ymd_(d) !== ymd_(myDay)) return;
+    if (!(got instanceof Date) || got.getTime() >= myGot.getTime()) return;   // csak a korábban beküldöttek
+    if (get(v, 'Állapot') === STATUS.NO) return;                              // elutasítottat nem kell lemondani
+    if (!sameGuest_(get(v, 'Email'), get(v, 'Telefon'), guest)) return;
+    old.push(i);
+  });
+  if (!old.length) return [];
+  const bk = backupSheet_();
+  const now = new Date(), newTime = fmtTime_(get(me, 'Időpont'));
+  const why = `Új időpont visszaigazolva: ${newTime} · 已确认新时间 ${newTime}`;
+  const done = [];
+  old.forEach(i => {
+    const v = rows[i];
+    bk.appendRow(v.concat([now, why]));
+    const email = get(v, 'Email');
+    if (email) {
+      try {
+        sendGuest_('cancel', {
+          name: get(v, 'Név'), email, time: fmtTime_(get(v, 'Időpont')), guests: get(v, 'Létszám'),
+          dateObj: new Date(get(v, 'Dátum')), note: '', newTime,
+          lang: String(get(v, 'Nyelv')).toLowerCase() === 'en' ? 'en' : 'hu'
+        });
+      } catch (err) { console.error(err); }
+    }
+    done.push(fmtTime_(get(v, 'Időpont')));
+  });
+  old.sort((a, b) => b - a).forEach(i => sh.deleteRow(i + 2));
+  bk.getRange(2, C['Telefon'], Math.max(bk.getLastRow() - 1, 1), 1).setNumberFormat('@');
+  return done;
+}
+
+function backupSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  let bk = ss.getSheetByName(BACKUP);
+  if (!bk) {
+    bk = ss.insertSheet(BACKUP, ss.getSheets().length);
+    const head = COLS.map(c => LABELS[c]).concat(['Törölve 删除时间', 'Ok 原因']);
+    bk.getRange(1, 1, 1, head.length).setValues([head]);
+    styleHeader_(bk.getRange(1, 1, 1, head.length));
+    bk.setFrozenRows(1);
+    bk.getRange(2, C['Dátum'], bk.getMaxRows() - 1, 1).setNumberFormat('yyyy-mm-dd');
+    bk.getRange(2, C['Időpont'], bk.getMaxRows() - 1, 1).setNumberFormat('@');
+    bk.getRange(2, C['Telefon'], bk.getMaxRows() - 1, 1).setNumberFormat('@');
+    bk.getRange(2, C['Beérkezett'], bk.getMaxRows() - 1, 1).setNumberFormat('yyyy-mm-dd hh:mm');
+    bk.getRange(2, COLS.length + 1, bk.getMaxRows() - 1, 1).setNumberFormat('yyyy-mm-dd hh:mm');
+    bk.hideSheet();
+  }
+  return bk;
 }
 
 function fmtTime_(t) {
@@ -370,6 +445,13 @@ function daily() {
       const d = dates[i][0];
       if (d instanceof Date && d < t0) sh.deleteRow(i + 2);
     }
+  }
+  // mentett (törölt) foglalások: a foglalás napja után 90 nappal végleg törlődnek
+  const bk = SpreadsheetApp.getActive().getSheetByName(BACKUP);
+  if (bk && bk.getLastRow() > 1) {
+    const limit = new Date(t0.getTime() - BACKUP_DAYS * 86400000);
+    const bd = bk.getRange(2, C['Dátum'], bk.getLastRow() - 1, 1).getValues();
+    for (let i = bd.length - 1; i >= 0; i--) if (bd[i][0] instanceof Date && bd[i][0] < limit) bk.deleteRow(i + 2);
   }
   ensureDayTabs_();
 }
