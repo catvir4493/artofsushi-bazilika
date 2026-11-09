@@ -100,6 +100,7 @@ function doPost(e) {
       sh.appendRow(row);
       formatRows_(sh);
       sortMain_(sh);
+      syncNoteBoxes_(sh);
       ensureDayTabs_();
     } finally { lock.releaseLock(); }
 
@@ -337,6 +338,7 @@ function setup() {
   const widths = { 'Dátum': 105, 'Időpont': 80, 'Név': 170, 'Létszám': 80, 'Telefon': 140, 'Email': 220, 'Egyéb kérés': 240, 'Állapot': 160, 'Levél': 300, 'Beérkezett': 140, 'Nyelv': 75, 'Azonosító': 95 };
   COLS.forEach((c, i) => sh.setColumnWidth(i + 1, widths[c]));
   formatRows_(sh);
+  syncNoteBoxes_(sh);
 
   const st = sh.getRange(2, C['Állapot'], sh.getMaxRows() - 1, 1);
   st.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(Object.values(STATUS), true).build());
@@ -489,6 +491,7 @@ function buildDayTab_(s, d) {
   s.setFrozenRows(1);
   s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length).setHorizontalAlignment('left');
   s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  s.getRange(2, DAY_COLS.indexOf('Egyéb kérés') + 1, s.getMaxRows() - 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setVerticalAlignment('top');
   s.getRange(2, 1, s.getMaxRows() - 1, 1).setNumberFormat('@');
   [80, 170, 80, 140, 260, 160, 300].forEach((w, i) => s.setColumnWidth(i + 1, w));
   const mail = s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1);
@@ -679,6 +682,20 @@ function replyMail_(b, text) {
   return { subject: `${t.subject} – ${CFG.RESTAURANT}`, plain, html };
 }
 
+/* --- Hosszú „Egyéb kérés”: a teljes szöveg felugró megjegyzésben ---
+   A cellában csak az eleje fér el; rákattintva / fölé víve egy kis dobozban a teljes szöveg látszik
+   (Google Táblázatok „megjegyzés”, a cella jobb felső sarkában kis fekete háromszög jelzi). */
+const NOTE_BOX_MIN = 25;   // ennél rövidebb szövegnél nem kell
+function syncNoteBoxes_(sh, rows) {
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  if (!rows) rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
+  const rng = sh.getRange(2, C['Egyéb kérés'], rows.length, 1);
+  const cur = rng.getNotes();
+  const want = rows.map(r => { const t = String(r[C['Egyéb kérés'] - 1] || '').trim(); return [t.length >= NOTE_BOX_MIN ? t : '']; });
+  if (want.some((w, i) => w[0] !== cur[i][0])) rng.setNotes(want);   // csak ha változott (egy hívás)
+}
+
 function menuMailDone() {
   const ui = SpreadsheetApp.getUi();
   const sh = SpreadsheetApp.getActiveSheet();
@@ -801,6 +818,7 @@ function checkMail() {
       col.getCell(i + 1, 1).setRichTextValue(SpreadsheetApp.newRichTextValue().setText(text).setLinkUrl(link).setTextStyle(plain).build());
     });
 
+    syncNoteBoxes_(sh, rows);
     pruneMailDone_(props, all, keys);
     return count;
   } finally { lock.releaseLock(); }
