@@ -14,13 +14,13 @@
     },
     {
       "name": {
-        "hu": "Sushi",
-        "en": "Sushi"
+        "hu": "Nigiri mix",
+        "en": "Nigiri mix"
       },
       "jp": "寿司",
       "text": {
-        "hu": "Nigiri, maki és látványos tekercsek, frissen a pult mögül.",
-        "en": "Nigiri, maki and showpiece rolls, made fresh behind the counter."
+        "hu": "Rizs, a tetején angolnával, főtt rákkal, lazaccal, tonhallal, tengeri sügérrel, kérgezett lazaccal, kérgezett tonhallal és flambírozott szósszal (az összetevők nem mindig érhetők el).",
+        "en": "Rice topped with eel, cooked shrimp, salmon, tuna, sea bass, seared salmon, seared tuna, and flambéed sauce (ingredients not always available)."
       },
       "image": "images/ART02966.jpg"
     },
