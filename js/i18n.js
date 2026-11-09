@@ -205,6 +205,7 @@
     const saved = localStorage.getItem(KEY);
     if (q === 'hu' || q === 'en') lang = q;
     else if (saved === 'hu' || saved === 'en') lang = saved;
+    else if (/bot|crawl|spider|slurp|lighthouse|google|bing|yandex|facebookexternalhit/i.test(navigator.userAgent)) lang = 'hu'; // keresőrobot: magyar
     else lang = (navigator.languages || [navigator.language || 'hu']).some(l => /^hu/i.test(l)) ? 'hu' : 'en';
   } catch (e) {}
 

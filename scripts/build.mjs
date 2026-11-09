@@ -187,7 +187,7 @@ for (const p of PAGES) {
   // nyitvatartás és telefon a JS-nek, a strukturált adatnak
   html = html.replace(/<html([^>]*)>/, (m, a) => `<html${a} data-open="${info.open}" data-close="${info.close}" data-phone="${escAttr(info.phone)}">`);
   html = html.replace(/"telephone":\s*"[^"]*"/, `"telephone": "${FILTERS.tel(info.phone).slice(4)}"`);
-  html = html.replace(/"opens":\s*"[^"]*","closes":\s*"[^"]*"/, `"opens": "${info.open}","closes": "${info.close === '00:00' ? '24:00' : info.close}"`);
+  html = html.replace(/"opens":\s*"[^"]*","closes":\s*"[^"]*"/, `"opens": "${info.open}","closes": "${info.close === '00:00' ? '23:59' : info.close}"`);
   fs.writeFileSync(path.join(OUT, p), html);
 }
 fs.writeFileSync(path.join(OUT, 'js', 'content-i18n.js'),
