@@ -8,6 +8,7 @@
  *  - „Foglalás” menü a táblázatban: visszaigazolás / elutasítás küldése a kijelölt sorra
  *  - a következő 7 nap mindegyikének saját lapja („11.08”), élőben a fő lapból
  *  - minden éjjel törli az elmúlt nap foglalásait és lapját, és létrehozza a 7. napot
+ *  - 10 percenként megnézi a Gmailt: ha egy vendég írt és még nem válaszoltunk, a „Levél” oszlopban jelzi (link a levélre)
  *
  * Telepítés: apps-script/README.md
  */
@@ -19,28 +20,32 @@ const CFG = {
   PHONE: '+36 30 516 1606',
   SITE: 'https://artofsushibp.hu/bazilika',
   DAY_TABS: 7,
-  MAX_GUESTS: 30
+  MAX_GUESTS: 30,
+  MAX_DAYS_AHEAD: 180,     // legfeljebb ennyi nappal előre lehet foglalni
+  MAX_PER_HOUR: 20,        // összesen ennyi új foglalás óránként (védi a napi ~100 e-mailes Gmail-keretet)
+  MAX_PER_GUEST_DAY: 3,    // ugyanarról az e-mail címről / telefonszámról naponta legfeljebb ennyi
+  MIN_FILL_MS: 3000,       // ennél gyorsabban kitöltött űrlap = robot
+  BACKUP_KEEP_DAYS: 14     // a „Mentés 备份” biztonsági lapok ennyi nap után törlődnek (személyes adatok!)
 };
 
 // Az oszlopok sorrendje a „Foglalások” lapon (az utolsó három rejtett)
-const COLS = ['Dátum', 'Időpont', 'Név', 'Létszám', 'Telefon', 'Email', 'Egyéb kérés', 'Állapot', 'Beérkezett', 'Nyelv', 'Azonosító'];
+const COLS = ['Dátum', 'Időpont', 'Név', 'Létszám', 'Telefon', 'Email', 'Egyéb kérés', 'Állapot', 'Levél', 'Beérkezett', 'Nyelv', 'Azonosító'];
 const HIDDEN_FROM = 'Beérkezett';
 const C = Object.fromEntries(COLS.map((n, i) => [n, i + 1]));
 // Fejléc a táblázatban: magyar + kínai (a kód a magyar kulcsot használja)
 const LABELS = {
   'Dátum': 'Dátum 日期', 'Időpont': 'Időpont 时间', 'Név': 'Név 姓名', 'Létszám': 'Létszám 人数',
-  'Telefon': 'Telefon 电话', 'Email': 'Email 邮箱', 'Egyéb kérés': 'Egyéb kérés 备注', 'Állapot': 'Állapot 状态',
+  'Telefon': 'Telefon 电话', 'Email': 'Email 邮箱', 'Egyéb kérés': 'Egyéb kérés 备注', 'Állapot': 'Állapot 状态', 'Levél': 'Levél 客人邮件',
   'Beérkezett': 'Beérkezett 提交时间', 'Nyelv': 'Nyelv 语言', 'Azonosító': 'Azonosító 编号'
 };
 const STATUS = { NEW: 'Új 新订单', OK: 'Visszaigazolva 已确认', NO: 'Elutasítva 已拒绝', SHOW: 'Megjelent 已到店', NOSHOW: 'Nem jelent meg 未到店' };
 // régi (csak magyar) állapotok → új, kétnyelvű
 const OLD_STATUS = { 'Új': STATUS.NEW, 'Visszaigazolva': STATUS.OK, 'Elutasítva': STATUS.NO, 'Megjelent': STATUS.SHOW, 'Nem jelent meg': STATUS.NOSHOW };
 // a napi lapok oszlopai (a fő lapból)
-const DAY_COLS = ['Időpont', 'Név', 'Létszám', 'Telefon', 'Egyéb kérés', 'Állapot'];
+const DAY_COLS = ['Időpont', 'Név', 'Létszám', 'Telefon', 'Egyéb kérés', 'Állapot', 'Levél'];
 const DAY_TAB = /^\d{2}\.\d{2}$/;      // pl. „11.08”
 const OLD_TABS = ['Ma', 'Holnap', 'Ma 今天', 'Holnap 明天', 'Régi sorok 旧行'];
 const BACKUP = 'Törölt 已删除';         // rejtett lap: az automatikusan törölt régi foglalások másolata
-const BACKUP_DAYS = 90;                  // adatkezelési tájékoztató: a foglalás napja után 90 nappal törlés
 const HEAD_BG = '#0c0b0a', HEAD_FG = '#e8dcc4';
 
 /* ---------- Beállítások (Script properties) ----------
@@ -53,10 +58,13 @@ function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k
    ========================================================= */
 function doPost(e) {
   try {
-    const d = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const raw = (e && e.postData && e.postData.contents) || '{}';
+    if (raw.length > 5000) return json_({ ok: false, error: 'invalid' });
+    const d = JSON.parse(raw);
 
-    // csapda mező: emberek nem töltik ki
+    // csapda mező: emberek nem töltik ki; és ember nem tölti ki 3 mp alatt — a robot „sikert” lát, de nem rögzítünk semmit
     if (d.website) return json_({ ok: true });
+    if (d.t != null && Number(d.t) < CFG.MIN_FILL_MS) return json_({ ok: true });
 
     const secret = prop_('TURNSTILE_SECRET');
     if (secret && !verifyTurnstile_(secret, d.turnstile)) return json_({ ok: false, error: 'captcha' });
@@ -72,17 +80,19 @@ function doPost(e) {
       // ugyanaz a foglalás még egyszer (dupla kattintás, újraküldés, újratöltés után): nem lesz új sor, nincs új e-mail
       const dup = findDuplicate_(sh, b);
       if (dup.id) return json_({ ok: true, id: dup.id, duplicate: true });
+      // tömeges / ismételt beküldés ellen (a Gmail napi kerete véges, és a vendégnek automatikus levél megy)
+      if (!allow_(b)) return json_({ ok: false, error: 'limit' });
       // ugyanaz a vendég ugyanarra a napra más időpontra: rögzítjük, de jelöljük
       if (dup.otherTimes.length) b.flag = `⚠ Ugyanaz a vendég aznap már: ${dup.otherTimes.join(', ')} · 同一客人当天已订 ${dup.otherTimes.join(', ')}`;
       const row = new Array(COLS.length).fill('');
       const put = (k, v) => { row[C[k] - 1] = v; };
       put('Dátum', b.dateObj);
       put('Időpont', b.time);
-      put('Név', b.name);
+      put('Név', cell_(b.name));
       put('Létszám', b.guests);
       put('Telefon', "'" + b.phone); // szövegként, különben a „+36…” képletnek látszik
-      put('Email', b.email);
-      put('Egyéb kérés', b.flag ? b.flag + (b.note ? ' | ' + b.note : '') : b.note);
+      put('Email', cell_(b.email));
+      put('Egyéb kérés', cell_(b.flag ? b.flag + (b.note ? ' | ' + b.note : '') : b.note));
       put('Állapot', STATUS.NEW);
       put('Beérkezett', new Date());
       put('Nyelv', b.lang.toUpperCase());
@@ -93,8 +103,9 @@ function doPost(e) {
       ensureDayTabs_();
     } finally { lock.releaseLock(); }
 
-    notifyRestaurant_(b);
-    sendGuest_('received', b);
+    // a foglalás már mentve van: egy e-mail hiba (pl. elfogyott a napi keret) ne jelenjen meg hibaként a vendégnek
+    try { notifyRestaurant_(b); } catch (err) { console.error('notify', err); }
+    try { if (MailApp.getRemainingDailyQuota() > 3) sendGuest_('received', b); } catch (err) { console.error('guest', err); }
     return json_({ ok: true, id: b.id });
   } catch (err) {
     console.error(err);
@@ -107,6 +118,30 @@ function doGet() { return json_({ ok: true, service: 'booking' }); }
 function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
+
+// Táblázat-cellába írt szöveg: ha =, +, -, @ jellel kezdődik, a Google Táblázatok képletként futtatná
+// (pl. =IMPORTXML(...) a vendégadatok kiszivárogtatására) — az elé tett ' miatt sima szöveg marad (nem látszik).
+function cell_(v) {
+  const s = String(v == null ? '' : v);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
+
+// Egyszerű korlát CacheService-szel (az Apps Script nem látja a látogató IP-címét)
+function allow_(b) {
+  const cache = CacheService.getScriptCache();
+  const hourKey = 'h' + Utilities.formatDate(new Date(), 'Europe/Budapest', 'yyyyMMddHH');
+  const dayTag = Utilities.formatDate(new Date(), 'Europe/Budapest', 'yyyyMMdd');
+  const keys = [hourKey, 'e' + dayTag + b.email.toLowerCase(), 'p' + dayTag + phoneKey_(b.phone)]
+    .map(k => Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, k)).slice(0, 40));
+  const got = cache.getAll(keys);
+  const n = keys.map(k => Number(got[k] || 0));
+  if (n[0] >= CFG.MAX_PER_HOUR || n[1] >= CFG.MAX_PER_GUEST_DAY || n[2] >= CFG.MAX_PER_GUEST_DAY) return false;
+  const put = {}; keys.forEach((k, i) => { put[k] = String(n[i] + 1); });
+  cache.putAll(put, 6 * 3600); // legfeljebb 6 óra a CacheService-ben
+  return true;
+}
+
+const URL_RE = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|ru|cn|xyz|top|info|io|link|click)\b)/i;
 
 function verifyTurnstile_(secret, token) {
   if (!token) return false;
@@ -123,13 +158,17 @@ function clean_(d) {
   const date = s(d.date, 10), time = s(d.time, 5), note = s(d.note, 500);
   const guests = parseInt(d.guests, 10);
   const lang = d.lang === 'en' ? 'en' : 'hu';
-  if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || phone.replace(/\D/g, '').length < 6) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  if (!name || URL_RE.test(name) || /[<>]/.test(name)) return null;  // névben nincs link (spam a vendégnek küldött levélben)
+  if (!/^[^@\s<>",;]+@[^@\s<>"',;]+\.[a-z]{2,}$/i.test(email)) return null;
+  if (!/^[\d\s()+\-./]+$/.test(phone) || phone.replace(/\D/g, '').length < 6) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
   if (!(guests >= 1 && guests <= CFG.MAX_GUESTS)) return null;
   const [y, m, dd] = date.split('-').map(Number);
   const dateObj = new Date(y, m - 1, dd);
+  if (dateObj.getMonth() !== m - 1 || dateObj.getDate() !== dd) return null;  // pl. 2026-02-31
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  if (dateObj < today) return null;
+  const maxDay = new Date(today); maxDay.setDate(maxDay.getDate() + CFG.MAX_DAYS_AHEAD);
+  if (dateObj < today || dateObj > maxDay) return null;
   // az űrlap saját azonosítót küld (ugyanaz marad újrapróbálkozáskor) → így ugyanaz a kérés csak egyszer kerül be
   const rid = String(d.rid || '').toUpperCase();
   const id = /^[A-Z0-9]{8,16}$/.test(rid) ? rid : Utilities.getUuid().slice(0, 8).toUpperCase();
@@ -183,7 +222,8 @@ function sendGuest_(kind, b) {
   const T = TPL[kind][b.lang], l = LBL[b.lang];
   const t = Object.assign({}, T, { lead: typeof T.lead === 'function' ? T.lead(b) : T.lead });
   const rows = [[l.date, fmtDate_(b.dateObj, b.lang)], [l.time, b.time], [l.guests, l.g(b.guests)], [l.addr, CFG.ADDRESS]];
-  if (b.note && kind === 'received') rows.push([l.note, b.note]);
+  // a megjegyzést csak akkor tesszük a levélbe, ha nincs benne link (különben bárki „reklámlevelet” küldethetne velünk)
+  if (b.note && kind === 'received' && !URL_RE.test(b.note)) rows.push([l.note, b.note]);
   const plain = [l.hello(b.name), '', t.lead, ...rows.map(r => `${r[0]}: ${r[1]}`), '', `${t.foot} ${CFG.PHONE}`, '', l.bye, CFG.RESTAURANT, CFG.SITE].join('\n');
   const html = `
   <div style="font-family:Georgia,serif;color:#1d1b18;max-width:560px;margin:0 auto;padding:24px">
@@ -224,6 +264,9 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Foglalás 订桌')
     .addItem('✓ Visszaigazolás küldése · 发送确认', 'menuConfirm')
     .addItem('✕ Elutasítás küldése · 发送拒绝', 'menuReject')
+    .addSeparator()
+    .addItem('✉ Levél kezelve · 邮件已处理', 'menuMailDone')
+    .addItem('✉ Levelek ellenőrzése most · 立即检查邮件', 'menuCheckMail')
     .addSeparator()
     .addItem('Ismétlődő foglalások törlése · 删除重复订单', 'removeDuplicates')
     .addItem('Beállítás / frissítés · 设置/更新', 'setup')
@@ -343,15 +386,17 @@ function setup() {
   sh.setFrozenRows(1);
   sh.getRange(1, 1, 1, COLS.length).setValues([COLS.map(c => LABELS[c])]);
   styleHeader_(sh.getRange(1, 1, 1, COLS.length));
-  const widths = { 'Dátum': 105, 'Időpont': 80, 'Név': 170, 'Létszám': 80, 'Telefon': 140, 'Email': 220, 'Egyéb kérés': 240, 'Állapot': 160, 'Beérkezett': 140, 'Nyelv': 75, 'Azonosító': 95 };
+  const widths = { 'Dátum': 105, 'Időpont': 80, 'Név': 170, 'Létszám': 80, 'Telefon': 140, 'Email': 220, 'Egyéb kérés': 240, 'Állapot': 160, 'Levél': 300, 'Beérkezett': 140, 'Nyelv': 75, 'Azonosító': 95 };
   COLS.forEach((c, i) => sh.setColumnWidth(i + 1, widths[c]));
   formatRows_(sh);
 
   const st = sh.getRange(2, C['Állapot'], sh.getMaxRows() - 1, 1);
   st.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(Object.values(STATUS), true).build());
   const colors = [[STATUS.NEW, '#fde7c3'], [STATUS.OK, '#d4edda'], [STATUS.NO, '#f9d6d5'], [STATUS.SHOW, '#dbe7fb'], [STATUS.NOSHOW, '#e6e6e6']];
+  const mail = sh.getRange(2, C['Levél'], sh.getMaxRows() - 1, 1);
   sh.setConditionalFormatRules(colors.map(([t, c]) =>
-    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t).setBackground(c).setRanges([st]).build()));
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t).setBackground(c).setRanges([st]).build())
+    .concat(SpreadsheetApp.newConditionalFormatRule().whenCellNotEmpty().setBackground(MAIL_BG).setBold(true).setRanges([mail]).build()));
 
   // ritkán kell: Beérkezett, Nyelv, Azonosító elrejtve (jobb klikk az oszlopfejlécen → megjelenítés)
   sh.showColumns(1, COLS.length);
@@ -362,8 +407,10 @@ function setup() {
   if (sh.getIndex() !== 1) { ss.setActiveSheet(sh); ss.moveActiveSheet(1); }
   daily();
 
-  ScriptApp.getProjectTriggers().filter(t => ['cleanup', 'daily'].includes(t.getHandlerFunction())).forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.getProjectTriggers().filter(t => ['cleanup', 'daily', 'checkMail'].includes(t.getHandlerFunction())).forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('daily').timeBased().everyDays(1).atHour(0).nearMinute(10).create();
+  ScriptApp.newTrigger('checkMail').timeBased().everyMinutes(MAIL.EVERY_MIN).create();
+  checkMail();
   ss.setActiveSheet(sh);
   ss.toast('Kész · 完成', 'Beállítás', 5);
 }
@@ -446,14 +493,24 @@ function daily() {
       if (d instanceof Date && d < t0) sh.deleteRow(i + 2);
     }
   }
-  // mentett (törölt) foglalások: a foglalás napja után 90 nappal végleg törlődnek
+  // automatikusan törölt régi foglalások mentése („Törölt”): a foglalás napja után ugyanúgy törlődik, mint a fő lapon
   const bk = SpreadsheetApp.getActive().getSheetByName(BACKUP);
   if (bk && bk.getLastRow() > 1) {
-    const limit = new Date(t0.getTime() - BACKUP_DAYS * 86400000);
     const bd = bk.getRange(2, C['Dátum'], bk.getLastRow() - 1, 1).getValues();
-    for (let i = bd.length - 1; i >= 0; i--) if (bd[i][0] instanceof Date && bd[i][0] < limit) bk.deleteRow(i + 2);
+    for (let i = bd.length - 1; i >= 0; i--) if (bd[i][0] instanceof Date && bd[i][0] < t0) bk.deleteRow(i + 2);
   }
+  dropOldBackups_();
   ensureDayTabs_();
+}
+
+// a „Mentés 备份 2026-11-07 10.15” lapok régi foglalásokat (személyes adatokat) tartalmaznak: néhány nap után törlés
+function dropOldBackups_() {
+  const ss = SpreadsheetApp.getActive();
+  const limit = today_(); limit.setDate(limit.getDate() - CFG.BACKUP_KEEP_DAYS);
+  ss.getSheets().forEach(s => {
+    const m = s.getName().match(/^Mentés 备份 (\d{4})-(\d{2})-(\d{2})/);
+    if (m && new Date(+m[1], m[2] - 1, +m[3]) < limit && ss.getSheets().length > 1) ss.deleteSheet(s);
+  });
 }
 
 // a következő 7 nap lapjai: a régieket törli, a hiányzókat létrehozza, sorrendbe teszi
@@ -488,7 +545,10 @@ function buildDayTab_(s, d) {
   s.setFrozenRows(1);
   s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length).setHorizontalAlignment('left');
   s.getRange(2, 1, s.getMaxRows() - 1, 1).setNumberFormat('@');
-  [80, 170, 80, 140, 260, 160].forEach((w, i) => s.setColumnWidth(i + 1, w));
+  [80, 170, 80, 140, 260, 160, 300].forEach((w, i) => s.setColumnWidth(i + 1, w));
+  const mail = s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1);
+  s.setConditionalFormatRules([SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(`=LEFT(${mail.getCell(1, 1).getA1Notation()},1)="✉"`).setBackground(MAIL_BG).setBold(true).setRanges([mail]).build()]);
 }
 
 function ymd_(d) { return Utilities.formatDate(d, 'Europe/Budapest', 'yyyy-MM-dd'); }
@@ -550,4 +610,146 @@ function removeDuplicates() {
 function sheet_() {
   const ss = SpreadsheetApp.getActive();
   return ss.getSheetByName(CFG.SHEET) || ss.insertSheet(CFG.SHEET, 0);
+}
+
+/* =========================================================
+   6. Vendégek levelei (10 percenként)
+   Ha egy jövőbeli foglalás vendége a foglalás után írt (új levél vagy válasz a visszaigazolásra),
+   és a levelezés utolsó üzenete tőle jön (= még nem válaszoltunk), a „Levél 客人邮件” oszlopban
+   megjelenik: „✉ 11.09 14:32 · a levél eleje…”, kattintva megnyílik a Gmailben.
+   Magától eltűnik, ha válaszolunk a Gmailből, vagy archiváljuk a levelet.
+   Ha telefonon intéztük el: sor kijelölése → Foglalás → „✉ Levél kezelve · 邮件已处理”.
+   ========================================================= */
+const MAIL = {
+  EVERY_MIN: 10,       // milyen gyakran nézze (perc)
+  DAYS: 30,            // az elmúlt ennyi nap leveleit nézi
+  MAX_THREADS: 150,    // egyszerre legfeljebb ennyi levelezést (a Gmail napi keretének kímélése)
+  SNIPPET: 90          // ennyi karakter a levél elejéből a cellában
+};
+const MAIL_BG = '#dbe9fb';
+const MAIL_DONE = 'mailok_';   // Script property: <kulcs> → eddig az időpontig (ms) kezelve
+
+function menuCheckMail() {
+  const n = checkMail();
+  SpreadsheetApp.getActive().toast(n ? `${n} foglalásnál új levél · ${n} 个订单有新邮件` : 'Nincs megválaszolatlan levél · 没有待回复的邮件', 'Levél', 5);
+}
+
+// a sor kulcsa: azonosító, ha nincs (régi sor), akkor az e-mail cím
+function mailKey_(id, email) { return MAIL_DONE + (String(id || '').trim() || String(email || '').trim().toLowerCase()); }
+
+function menuMailDone() {
+  const ui = SpreadsheetApp.getUi();
+  const sh = SpreadsheetApp.getActiveSheet();
+  if (sh.getName() !== CFG.SHEET) { ui.alert(`Kérjük, a „${CFG.SHEET}” lapon jelölje ki a foglalás sorát.\n请在「${CFG.SHEET}」表里选中订单那一行。`); return; }
+  const rng = sh.getActiveRange();
+  if (rng.getLastRow() < 2) { ui.alert('Jelöljön ki egy foglalást (ne a fejlécet).\n请选中一条订单（不是表头）。'); return; }
+  const top = Math.max(rng.getRow(), 2), n = rng.getLastRow() - top + 1;
+  const v = sh.getRange(top, 1, n, COLS.length).getValues();
+  const props = PropertiesService.getScriptProperties(), now = String(Date.now());
+  v.forEach((r, i) => {
+    props.setProperty(mailKey_(r[C['Azonosító'] - 1], r[C['Email'] - 1]), now);
+    sh.getRange(top + i, C['Levél']).clearContent();
+  });
+  SpreadsheetApp.getActive().toast('Kész · 已标记为处理', 'Levél', 4);
+}
+
+// a fő feladat (időzítő hívja); visszaadja, hány foglalásnál van megválaszolatlan levél
+function checkMail() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(15000)) return 0;     // épp foglalás érkezik / fut valami: majd legközelebb
+  try {
+    const sh = sheet_();
+    const last = sh.getLastRow();
+    const props = PropertiesService.getScriptProperties();
+    const all = props.getProperties();
+    if (last < 2) { pruneMailDone_(props, all, new Set()); return 0; }
+    const rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
+
+    // vendég e-mail cím → a foglalásai (sor, beérkezés ideje, kulcs)
+    const byEmail = {}, keys = new Set();
+    rows.forEach((r, i) => {
+      const em = String(r[C['Email'] - 1] || '').trim().toLowerCase();
+      if (!em || r[C['Állapot'] - 1] === STATUS.NO) return;
+      const key = mailKey_(r[C['Azonosító'] - 1], em);
+      keys.add(key);
+      const got = r[C['Beérkezett'] - 1];
+      const since = Math.max(got instanceof Date ? got.getTime() : 0, Number(all[key] || 0));
+      (byEmail[em] = byEmail[em] || []).push({ i, since });
+    });
+
+    // saját címeink (ezektől jövő utolsó üzenet = már válaszoltunk)
+    const me = Session.getEffectiveUser().getEmail().toLowerCase();
+    const mine = new Set([me, prop_('NOTIFY_EMAIL').toLowerCase()].concat(GmailApp.getAliases().map(a => a.toLowerCase())));
+
+    // keresés a vendégek címeire (30-asával): a beérkezett mappa elmúlt napjai
+    const emails = Object.keys(byEmail).filter(em => /^[^\s"(){}]+$/.test(em));
+    const threads = [], seen = new Set();
+    for (let k = 0; k < emails.length && threads.length < MAIL.MAX_THREADS; k += 30) {
+      const q = `in:inbox newer_than:${MAIL.DAYS}d from:(${emails.slice(k, k + 30).join(' OR ')})`;
+      GmailApp.search(q, 0, MAIL.MAX_THREADS - threads.length).forEach(th => { if (!seen.has(th.getId())) { seen.add(th.getId()); threads.push(th); } });
+    }
+    const msgs = threads.length ? GmailApp.getMessagesForThreads(threads) : [];
+    const hit = {};   // sor index → { date, threadId, msg }
+    msgs.forEach((list, t) => {
+      const real = list.filter(m => !m.isDraft() && !m.isInTrash());
+      const lastMsg = real[real.length - 1];
+      if (!lastMsg) return;
+      const from = addr_(lastMsg.getFrom());
+      if (mine.has(from) || !byEmail[from]) return;           // utolsó üzenet tőlünk, vagy nem vendég
+      const date = lastMsg.getDate().getTime();
+      byEmail[from].forEach(b => {
+        if (date <= b.since) return;                           // a foglalás előtti / már kezelt levél
+        const old = hit[b.i];
+        if (!old || date > old.date) hit[b.i] = { date, threadId: threads[t].getId(), msg: lastMsg };
+      });
+    });
+
+    // csak a változott cellákat írjuk át
+    const col = sh.getRange(2, C['Levél'], rows.length, 1);
+    const cur = col.getRichTextValues();
+    let count = 0;
+    rows.forEach((r, i) => {
+      const h = hit[i];
+      const now = cur[i][0], nowText = now ? now.getText() : '', nowLink = now ? now.getLinkUrl() : null;
+      if (!h) { if (nowText) col.getCell(i + 1, 1).clearContent(); return; }
+      count++;
+      // authuser: ha a böngészőben több Google-fiók van (vagy még nincs belépve), a bolt fiókjába visz / bejelentkezést kér
+      const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(me)}#all/${h.threadId}`;
+      const stamp = Utilities.formatDate(new Date(h.date), 'Europe/Budapest', 'MM.dd HH:mm');
+      // ugyanaz a levél már ki van írva: nem nyúlunk hozzá (és nem olvassuk újra a levél szövegét)
+      if (nowLink === link && nowText.indexOf(`✉ ${stamp}`) === 0) return;
+      const text = `✉ ${stamp} · ${snippet_(h.msg)}`;
+      col.getCell(i + 1, 1).setRichTextValue(SpreadsheetApp.newRichTextValue().setText(text).setLinkUrl(link).build());
+    });
+
+    pruneMailDone_(props, all, keys);
+    return count;
+  } finally { lock.releaseLock(); }
+}
+
+// „Név <cim@pelda.hu>” → cim@pelda.hu
+function addr_(from) {
+  const m = String(from || '').match(/<([^>]+)>/);
+  return (m ? m[1] : String(from || '')).trim().toLowerCase();
+}
+
+// a levél eleje, az idézett előzmények nélkül
+function snippet_(m) {
+  const lines = String(m.getPlainBody() || '').split(/\r?\n/);
+  const out = [];
+  for (const l of lines) {
+    const t = l.trim();
+    if (/^>/.test(t)) continue;
+    if (/^(On .+ wrote:|.+ írta:|-{2,}\s*Original Message|Feladó:|From:)/i.test(t)) break;   // innen idézet jön
+    if (t) out.push(t);
+    if (out.join(' ').length > MAIL.SNIPPET) break;
+  }
+  let s = out.join(' ').replace(/\s+/g, ' ') || String(m.getSubject() || '');
+  if (s.length > MAIL.SNIPPET) s = s.slice(0, MAIL.SNIPPET - 1) + '…';
+  return s;
+}
+
+// a már törölt foglalások „kezelve” jelzéseit eltakarítjuk (különben gyűlnének)
+function pruneMailDone_(props, all, keys) {
+  Object.keys(all).forEach(k => { if (k.indexOf(MAIL_DONE) === 0 && !keys.has(k)) props.deleteProperty(k); });
 }

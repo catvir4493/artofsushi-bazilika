@@ -18,12 +18,11 @@
   <meta name="theme-color" content="#0c0b0a">
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
 
+  <link rel="preconnect" href="https://challenges.cloudflare.com">
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="css/style.css">
 
-  <script>
-    document.documentElement.classList.add('js');
-  </script>
+  <script src="js/early.js"></script>
 
   <script type="application/ld+json">
   {
@@ -315,15 +314,15 @@
 
         <form class="booking__form reveal-up" id="bookingForm" novalidate>
           <div class="field">
-            <input id="f-name" name="name" type="text" required autocomplete="name" placeholder=" ">
+            <input id="f-name" name="name" type="text" maxlength="80" required autocomplete="name" placeholder=" ">
             <label for="f-name">Név *</label>
           </div>
           <div class="field field--half">
-            <input id="f-email" name="email" type="email" required autocomplete="email" placeholder=" ">
+            <input id="f-email" name="email" type="email" maxlength="120" required autocomplete="email" placeholder=" ">
             <label for="f-email">Email *</label>
           </div>
           <div class="field field--half">
-            <input id="f-phone" name="phone" type="tel" required autocomplete="tel" placeholder=" ">
+            <input id="f-phone" name="phone" type="tel" maxlength="40" required autocomplete="tel" placeholder=" ">
             <label for="f-phone">Telefonszám *</label>
           </div>
           <div class="field field--half">
@@ -351,7 +350,7 @@
           </div>
 
           <div class="field field--full">
-            <textarea id="f-note" name="note" rows="2" placeholder=" "></textarea>
+            <textarea id="f-note" name="note" rows="2" maxlength="500" placeholder=" "></textarea>
             <label for="f-note">Egyéb kérés</label>
           </div>
 

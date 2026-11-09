@@ -15,7 +15,7 @@
   }
   const CONFIG = {
     FORM_ENDPOINT: 'https://script.google.com/macros/s/AKfycbw9nIfru4UdiiONJ1XsQJ1xwW3wbNpZKvkx-0-eNhykKTWx2B0d_-Fsc4Gi-_ceLVKsQw/exec',
-    TURNSTILE_SITEKEY: '',
+    TURNSTILE_SITEKEY: '0x4AAAAAAF58oTpyjC6YDP_2',
     BOOKING_EMAIL: '',
     // nyitvatartás és telefon: a build a <html> elemre írja (content/info.json)
     PHONE: document.documentElement.dataset.phone || '+36 30 516 1606',
@@ -588,6 +588,9 @@
   ['input', 'change', 'blur'].forEach(e => date.addEventListener(e, syncDate));
   syncDate();
   date.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const far = new Date(today); far.setDate(far.getDate() + 180); // a szerver is legfeljebb 180 napot fogad el
+  date.max = `${far.getFullYear()}-${pad(far.getMonth() + 1)}-${pad(far.getDate())}`;
+  const formShown = Date.now(); // robotszűrés: 3 mp-en belül beküldött űrlapot a szerver eldob
   // időpontok félóránként, nyitástól zárás előtt 2 óráig
   for (let x = Math.ceil(CONFIG.OPEN_HOUR * 2) / 2; x <= CONFIG.CLOSE_HOUR - 2; x += .5) {
     {
@@ -604,6 +607,7 @@
   if (CONFIG.TURNSTILE_SITEKEY) {
     const box = document.createElement('div');
     box.className = 'cf-turnstile'; box.dataset.sitekey = CONFIG.TURNSTILE_SITEKEY; box.dataset.theme = 'dark';
+    box.dataset.appearance = 'interaction-only'; // a legtöbb vendég nem is látja: a háttérben, kitöltés közben ellenőriz
     $('.check', form).after(box);
     const sc = document.createElement('script');
     sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; sc.async = true; sc.defer = true;
@@ -645,6 +649,9 @@ Nyelv: ${T('langName')}`;
     const btnLabel = submitBtn.textContent;
     submitBtn.disabled = true; submitBtn.setAttribute('aria-busy', 'true');
     submitBtn.textContent = T('sending');
+    // ha a Turnstile még dolgozik (lassú net), legfeljebb 8 mp-ig megvárjuk a jegyet, hogy ne üresen menjen el
+    const tsToken = () => ($('[name="cf-turnstile-response"]', form) || {}).value || '';
+    if (CONFIG.TURNSTILE_SITEKEY) for (let i = 0; i < 40 && !tsToken(); i++) await new Promise(r => setTimeout(r, 200));
     try {
       if (CONFIG.FORM_ENDPOINT) {
         // text/plain: így a böngésző nem küld előzetes CORS-kérést az Apps Scriptnek
@@ -653,7 +660,7 @@ Nyelv: ${T('langName')}`;
           body: JSON.stringify({
             name: data.name, email: data.email, phone: data.phone, date: data.date, time: data.time,
             guests, note: data.note || '', rid, lang: window.AOS_I18N ? AOS_I18N.lang : 'hu',
-            website: data.website || '', turnstile: data['cf-turnstile-response'] || ''
+            website: data.website || '', turnstile: tsToken(), t: Date.now() - formShown
           })
         });
         const out = await res.json().catch(() => ({}));
@@ -671,6 +678,7 @@ Nyelv: ${T('langName')}`;
     } catch (err) {
       msg.classList.add('err');
       msg.textContent = T('fail', CONFIG.PHONE);
+      if (window.turnstile) try { turnstile.reset(); } catch {} // a Turnstile-jegy egyszer használható: újrapróbáláshoz új kell
     } finally {
       sending = false;
       submitBtn.disabled = false; submitBtn.removeAttribute('aria-busy');
