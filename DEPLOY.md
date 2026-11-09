@@ -43,6 +43,8 @@
 2. 选仓库和 `main` 分支，左侧会出现：营业信息、价格、公告、菜单与主厨推荐、画廊照片、介绍文字。
 3. **Collaborators** → 用老板的邮箱邀请。老板收到邮件后用邮箱登录，不需要 GitHub 账号。
 4. 每次保存都是一次 GitHub 提交；改坏了在 GitHub 上找到那次提交 Revert 即可。
+5. 老板（Collaborator）只能改内容和上传图片，改不了 `.pages.yml`，也不能邀请别人；Pages CMS 的 GitHub App 必须一直装在本仓库上，老板的保存才能提交。
+6. 保护：图片找不到、时间格式不对、日期格式不对时构建会失败，旧版网站继续在线（Cloudflare Pages → Deployments 里能看到原因）。图片超过 1.5 MB 只会在构建日志里警告。
 
 后台能改的内容在 `content/*.json`，字段定义在 `.pages.yml`，页面上的对应位置用 `data-cms` 标记（见 `scripts/build.mjs` 顶部说明）。
 

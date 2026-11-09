@@ -28,6 +28,16 @@ if (!/^\d{1,2}:\d{2}$/.test(C.info.open) || !/^\d{1,2}:\d{2}$/.test(C.info.close
 for (const k of ['adult', 'child', 'duration', 'service']) if (!(Number(C.prices[k]) >= 0)) fail(`Hibás ár / szám: prices.${k}`);
 const jpOk = new Set(fs.readFileSync(path.join(ROOT, 'fonts', 'jp-chars.txt'), 'utf8').trim());
 const jpNew = [...new Set([...(C.menu.categories || []), ...(C.menu.chef || [])].flatMap(x => [...(x.jp || '')]))].filter(ch => !jpOk.has(ch));
+for (const k of ['from', 'to']) if (C.notice[k] && !/^\d{4}-\d{2}-\d{2}$/.test(C.notice[k])) fail(`A közlemény dátuma ÉÉÉÉ-HH-NN legyen: notice.${k}`);
+// képek: hiányzó fájlnál a build megáll; nagy fájlnál csak figyelmeztet
+const pics = [...(C.menu.categories || []), ...(C.menu.chef || []), ...(C.gallery.images || [])].map(x => String(x.image || '').replace(/^\/+/, ''));
+for (const p of pics) {
+  if (!p) fail('Egy menü / galéria elemnél nincs kép kiválasztva.');
+  const f = path.join(ROOT, decodeURI(p));
+  if (!fs.existsSync(f)) fail(`A kép nem található: ${p}`);
+  const mb = fs.statSync(f).size / 1048576;
+  if (mb > 1.5) console.warn(`Figyelem: nagy kép (${mb.toFixed(1)} MB), lassítja az oldalt: ${p}`);
+}
 if (jpNew.length) console.warn(`Figyelem: ezek a japán írásjegyek nincsenek a betűtípusban, tartalék betűvel jelennek meg: ${jpNew.join('')}`);
 
 const t = (hu, en) => ({ hu, en });
@@ -35,6 +45,7 @@ const hhmm = s => { const [h, m] = String(s || '0:0').split(':').map(Number); re
 const huNum = n => String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // 12 999
 const info = C.info, prices = C.prices;
 const times = `${info.open} – ${info.close}`;
+const everyDay = /^hétfő\s*[–-]\s*vasárnap$/i.test(String(info.days.hu || '').trim());
 let openH = hhmm(info.open), closeH = hhmm(info.close);
 if (closeH <= openH) closeH += 24;
 
@@ -43,10 +54,12 @@ C.calc = {
   times,
   line: t(`${info.days.hu} · ${times}`, `${info.days.en} · ${times}`),
   overlay: t(`${info.days.hu} ${times}`, `${info.days.en} ${times}`),
-  daily: t(`Minden nap ${times}`, `Open daily ${times}`),
+  daily: everyDay ? t(`Minden nap ${times}`, `Open daily ${times}`) : t(`${info.days.hu} ${times}`, `${info.days.en || info.days.hu} ${times}`),
   span: Math.round(closeH - openH),
   duration_rule: t(`Az önkiszolgáló étkezés időtartama legfeljebb ${prices.duration} óra.`, `All-you-can-eat dining is limited to ${prices.duration} hours per table.`),
   service_rule: t(`${prices.service}% szervizdíjat számolunk fel.`, `A ${prices.service}% service charge is added to the bill.`),
+  meta: t(`Art of Sushi Bazilika – korlátlan (all you can eat) prémium sushi étterem a Szent István-bazilika mellett. Budapest, Sas u. 4, 1051. Nyitva ${everyDay ? 'minden nap' : info.days.hu} ${info.open}–${info.close}. Asztalfoglalás online vagy: ${info.phone}.`,
+    `Art of Sushi Bazilika – all-you-can-eat premium sushi restaurant beside St Stephen’s Basilica. Budapest, Sas u. 4, 1051. Open ${everyDay ? 'daily' : info.days.en || info.days.hu} ${info.open}–${info.close}. Book online or call ${info.phone}.`),
   child: `${huNum(prices.child)} Ft`,
   count: String((C.menu.categories || []).length).padStart(2, '0'),
   gcount: String((C.gallery.images || []).length).padStart(2, '0')

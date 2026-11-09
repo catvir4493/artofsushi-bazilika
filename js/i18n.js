@@ -155,9 +155,9 @@
     'Art of Sushi · Budapest · Bazilika & Liszt Ferenc tér': 'Art of Sushi · Budapest · Bazilika & Liszt Ferenc tér',
     'Art of Sushi Budapesten – két üzlet: az új Bazilika üzlet (Sas u. 4, 1051) és a Liszt Ferenc téri üzlet (Liszt Ferenc tér 5, 1061).':
       'Art of Sushi in Budapest – two restaurants: our new Bazilika location (Sas u. 4, 1051) and Liszt Ferenc tér (Liszt Ferenc tér 5, 1061).',
-    'Art of Sushi Bazilika · All You Can Eat sushi · Budapest, Sas u. 4': 'Art of Sushi Bazilika · All You Can Eat Sushi · Budapest, Sas u. 4',
-    'Art of Sushi Bazilika – korlátlan prémium sushi a Szent István-bazilika mellett. Budapest, Sas u. 4, 1051. Nyitva minden nap 12:00–00:00. Asztalfoglalás: +36 30 516 1606.':
-      'Art of Sushi Bazilika – unlimited premium sushi beside St Stephen’s Basilica. Budapest, Sas u. 4, 1051. Open daily 12:00–00:00. Reservations: +36 30 516 1606.'
+    'Art of Sushi Bazilika · All You Can Eat sushi étterem · Budapest, Sas u. 4': 'Art of Sushi Bazilika · All You Can Eat Sushi Restaurant · Budapest, Sas u. 4',
+    'Art of Sushi Bazilika – korlátlan (all you can eat) prémium sushi étterem a Szent István-bazilika mellett. Budapest, Sas u. 4, 1051. Nyitva minden nap 12:00–00:00. Asztalfoglalás online vagy: +36 30 516 1606.':
+      'Art of Sushi Bazilika – all-you-can-eat premium sushi restaurant beside St Stephen’s Basilica. Budapest, Sas u. 4, 1051. Open daily 12:00–00:00. Book online or call +36 30 516 1606.'
   };
 
   const HOURS = { open: document.documentElement.dataset.open || '12:00', close: document.documentElement.dataset.close || '00:00' };
@@ -191,6 +191,7 @@
   // a Pages CMS-ben szerkesztett szövegek angol párjai (js/content-i18n.js, a build készíti)
   Object.assign(TEXT, window.AOS_TEXT_EXTRA || {});
   Object.assign(ATTR, window.AOS_TEXT_EXTRA || {});
+  Object.assign(META, window.AOS_TEXT_EXTRA || {});
 
   /* ---------- Működés ---------- */
   const root = document.documentElement;

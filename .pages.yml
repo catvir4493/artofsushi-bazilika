@@ -71,7 +71,7 @@ content:
           - { name: name, label: 名称, component: bi }
           - { name: jp, label: 日文小字, type: string, description: "例如 寿司；新的日文字请告诉 Marcell，以便加进字体" }
           - { name: text, label: 介绍, component: bitext }
-          - { name: image, label: 照片, type: image }
+          - { name: image, label: 照片, type: image, required: true, options: { extensions: [jpg, jpeg, png, webp], rename: safe }, description: "JPG/PNG/WebP；手机照片请先压缩到 1 MB 以内，网页打开更快" }
       - name: chef
         label: 主厨推荐
         type: object
@@ -80,7 +80,7 @@ content:
           - { name: name, label: 菜名, component: bi }
           - { name: jp, label: 日文小字, type: string }
           - { name: text, label: 介绍, component: bitext }
-          - { name: image, label: 照片, type: image }
+          - { name: image, label: 照片, type: image, required: true, options: { extensions: [jpg, jpeg, png, webp], rename: safe }, description: "JPG/PNG/WebP；手机照片请先压缩到 1 MB 以内，网页打开更快" }
 
   - name: gallery
     label: 画廊照片
@@ -93,7 +93,7 @@ content:
         type: object
         list: { min: 3, max: 24, collapsible: { collapsed: true, summary: "{index}" } }
         fields:
-          - { name: image, label: 照片, type: image, required: true }
+          - { name: image, label: 照片, type: image, required: true, options: { extensions: [jpg, jpeg, png, webp], rename: safe }, description: "JPG/PNG/WebP；手机照片请先压缩到 1 MB 以内" }
 
   - name: texts
     label: 介绍文字
