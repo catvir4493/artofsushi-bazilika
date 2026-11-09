@@ -262,6 +262,7 @@ function onOpen() {
     .addItem('✓ Visszaigazolás küldése · 发送确认', 'menuConfirm')
     .addItem('✕ Elutasítás küldése · 发送拒绝', 'menuReject')
     .addSeparator()
+    .addItem('✉ Válasz a vendégnek · 回复客人', 'menuReply')
     .addItem('✉ Levél kezelve · 邮件已处理', 'menuMailDone')
     .addItem('✉ Levelek ellenőrzése most · 立即检查邮件', 'menuCheckMail')
     .addSeparator()
@@ -604,6 +605,78 @@ function autoSubjects_() {
   const out = new Set();
   Object.keys(TPL).forEach(k => ['hu', 'en'].forEach(lg => out.add(`${TPL[k][lg].subject} – ${CFG.RESTAURANT}`)));
   return out;
+}
+
+/* --- Válasz a vendégnek közvetlenül a táblázatból ---
+   Kijelölt sor → menü → beírjuk a választ → a vendég megkapja (az ő nyelvén keretezve).
+   Ha a vendég már írt (✉ link a cellában), a válasz ugyanabba a Gmail-levelezésbe megy; különben új levél.
+   Utána a ✉ / 📝 jelzés eltűnik. */
+const REPLY_TPL = {
+  hu: { subject: 'Foglalásával kapcsolatban', booking: 'Az Ön foglalása' },
+  en: { subject: 'About your booking', booking: 'Your booking' }
+};
+function menuReply() {
+  const ui = SpreadsheetApp.getUi();
+  const sh = SpreadsheetApp.getActiveSheet();
+  if (sh.getName() !== CFG.SHEET) { ui.alert(`Kérjük, a „${CFG.SHEET}” lapon jelölje ki a foglalás sorát.\n请在「${CFG.SHEET}」表里选中订单那一行。`); return; }
+  const r = sh.getActiveRange().getRow();
+  if (r < 2) { ui.alert('Jelöljön ki egy foglalást (ne a fejlécet).\n请选中一条订单（不是表头）。'); return; }
+  const v = sh.getRange(r, 1, 1, COLS.length).getValues()[0];
+  const get = n => v[C[n] - 1];
+  const b = {
+    name: get('Név'), email: String(get('Email') || '').trim(), time: fmtTime_(get('Időpont')), guests: get('Létszám'),
+    dateObj: new Date(get('Dátum')), lang: String(get('Nyelv')).toLowerCase() === 'en' ? 'en' : 'hu'
+  };
+  if (!b.email) { ui.alert('Ebben a sorban nincs e-mail cím.\n这一行没有邮箱。'); return; }
+
+  // mire válaszolunk: a vendég kérése és/vagy legutóbbi levele
+  const cell = sh.getRange(r, C['Levél']);
+  const rich = cell.getRichTextValue();
+  const link = rich ? rich.getLinkUrl() : null;
+  const m = link && link.match(/#all\/([0-9a-f]+)/i);
+  const threadId = m ? m[1] : '';
+  const req = guestNote_(get('Egyéb kérés'));
+  const ctx = [`${b.name} · ${fmtDate_(b.dateObj, 'hu')} ${b.time} · ${b.guests} fő · ${b.lang.toUpperCase()}`];
+  if (req) ctx.push(`Kérés · 备注: „${req}”`);
+  if (threadId) ctx.push(`Levél · 客人邮件: ${String(cell.getValue()).replace(/^✉\s*/, '')}`);
+  const p = ui.prompt('✉ Válasz a vendégnek · 回复客人',
+    ctx.join('\n') + `\n\nÍrja be a választ (${b.lang === 'en' ? 'angolul' : 'magyarul'}) · 写回复（${b.lang === 'en' ? '英文' : '匈牙利文'}）：\n` +
+    'A megszólítást, a foglalás adatait és az aláírást a levél automatikusan tartalmazza. · 称呼、订单信息和落款会自动加上。', ui.ButtonSet.OK_CANCEL);
+  if (p.getSelectedButton() !== ui.Button.OK) return;
+  const text = p.getResponseText().trim();
+  if (!text) { ui.alert('Üres válasz – nem küldtünk semmit.\n回复是空的，什么都没发。'); return; }
+  if (ui.alert(`Elküldi ${b.name} (${b.email}) részére? · 发给这位客人？\n\n${text}`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+
+  const mail = replyMail_(b, text);
+  let thread = null;
+  if (threadId) { try { thread = GmailApp.getThreadById(threadId); } catch (e) { thread = null; } }
+  if (thread) thread.reply(mail.plain, { htmlBody: mail.html, name: CFG.RESTAURANT });   // a vendég levelezésébe
+  else MailApp.sendEmail({ to: b.email, subject: mail.subject, body: mail.plain, htmlBody: mail.html, name: CFG.RESTAURANT, replyTo: prop_('NOTIFY_EMAIL') || undefined });
+
+  const props = PropertiesService.getScriptProperties(), now = String(Date.now());
+  props.setProperty(mailKey_(get('Azonosító'), b.email), now);
+  props.setProperty(noteKey_(get('Azonosító'), b.email), now);
+  cell.clearContent();
+  SpreadsheetApp.getActive().toast('Elküldve · 已发送', 'Válasz', 4);
+}
+
+function replyMail_(b, text) {
+  const t = REPLY_TPL[b.lang], l = LBL[b.lang];
+  const rows = [[l.date, fmtDate_(b.dateObj, b.lang)], [l.time, b.time], [l.guests, l.g(b.guests)], [l.addr, CFG.ADDRESS]];
+  const plain = [l.hello(b.name), '', text, '', `${t.booking}:`, ...rows.map(x => `${x[0]}: ${x[1]}`), '', l.bye, CFG.RESTAURANT, CFG.PHONE, CFG.SITE].join('\n');
+  const html = `
+  <div style="font-family:Georgia,serif;color:#1d1b18;max-width:560px;margin:0 auto;padding:24px">
+    <div style="font-size:20px;letter-spacing:.08em;border-bottom:1px solid #c4a46c;padding-bottom:10px;margin-bottom:18px">ART OF SUSHI · BAZILIKA</div>
+    <p style="font-family:Arial,sans-serif;font-size:14px">${esc_(l.hello(b.name))}</p>
+    <p style="font-family:Arial,sans-serif;font-size:14px">${esc_(text).replace(/\n/g, '<br>')}</p>
+    <p style="font-family:Arial,sans-serif;font-size:12px;color:#80786a;margin:18px 0 4px">${esc_(t.booking)}</p>
+    <table style="font-family:Arial,sans-serif;font-size:14px;background:#faf8f4;border:1px solid #e8e2d6;border-radius:6px;padding:10px 14px;margin:0 0 12px">
+      ${rows.map(x => `<tr><td style="color:#80786a;padding:3px 16px 3px 0">${esc_(x[0])}</td><td style="font-weight:bold">${esc_(x[1])}</td></tr>`).join('')}
+    </table>
+    <p style="font-family:Arial,sans-serif;font-size:14px">${esc_(l.bye)}<br>${CFG.RESTAURANT}<br><b>${CFG.PHONE}</b></p>
+    <p style="font-family:Arial,sans-serif;font-size:12px;color:#80786a">${CFG.ADDRESS} · <a href="${CFG.SITE}" style="color:#9a7a3f">artofsushibp.hu</a></p>
+  </div>`;
+  return { subject: `${t.subject} – ${CFG.RESTAURANT}`, plain, html };
 }
 
 function menuMailDone() {
