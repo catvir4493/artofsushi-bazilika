@@ -1,4 +1,16 @@
-# Cloudflare Pages: a *.pages.dev előnézeti címek ne kerüljenek a Google-be (csak artofsushibp.hu)
+# Cloudflare Pages: biztonsági fejlécek minden oldalra
+# Ha új külső szolgáltatást (script, térkép, űrlap-cím) teszünk az oldalra, a Content-Security-Policy-be is fel kell venni,
+# különben a böngésző letiltja. Beágyazott <script> nem futhat: a JavaScript mindig külön fájlba (js/) kerüljön.
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cloudflareinsights.com; frame-src https://www.google.com https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+
+# a *.pages.dev előnézeti címek ne kerüljenek a Google-be (csak artofsushibp.hu)
 https://:project.pages.dev/*
   X-Robots-Tag: noindex
 https://:version.:project.pages.dev/*
