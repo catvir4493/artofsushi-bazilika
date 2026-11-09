@@ -93,7 +93,7 @@ function doPost(e) {
       put('Email', cell_(b.email));
       put('Egyéb kérés', cell_(b.flag ? b.flag + (b.note ? ' | ' + b.note : '') : b.note));
       put('Állapot', STATUS.NEW);
-      if (b.note) put('Levél', noteFlag_(b.note));   // a vendég kért valamit: válaszra vár
+      if (b.note) put('Levél', noteFlag_());   // a vendég kért valamit: válaszra vár
       put('Beérkezett', new Date());
       put('Nyelv', b.lang.toUpperCase());
       put('Azonosító', b.id);
@@ -311,7 +311,7 @@ function actOnSelection_(kind) {
   if (b.reply) {                     // a kérésre válaszoltunk: a „📝 待回复” jelzés eltűnik
     PropertiesService.getScriptProperties().setProperty(noteKey_(get('Azonosító'), b.email), String(Date.now()));
     const cell = sh.getRange(r, C['Levél']);
-    if (String(cell.getValue()).indexOf(NOTE_MARK) === 0) cell.clearContent();
+    if (String(cell.getValue()).indexOf(NOTE_MARK) === 0) cell.clearContent().clearNote();
   }
   SpreadsheetApp.getActive().toast('Elküldve · 已发送', 'Foglalás', 4);
 }
@@ -335,7 +335,7 @@ function setup() {
   sh.setFrozenRows(1);
   sh.getRange(1, 1, 1, COLS.length).setValues([COLS.map(c => LABELS[c])]);
   styleHeader_(sh.getRange(1, 1, 1, COLS.length));
-  const widths = { 'Dátum': 105, 'Időpont': 80, 'Név': 170, 'Létszám': 80, 'Telefon': 140, 'Email': 220, 'Egyéb kérés': 240, 'Állapot': 160, 'Levél': 300, 'Beérkezett': 140, 'Nyelv': 75, 'Azonosító': 95 };
+  const widths = { 'Dátum': 105, 'Időpont': 80, 'Név': 170, 'Létszám': 80, 'Telefon': 140, 'Email': 220, 'Egyéb kérés': 240, 'Állapot': 160, 'Levél': 170, 'Beérkezett': 140, 'Nyelv': 75, 'Azonosító': 95 };
   COLS.forEach((c, i) => sh.setColumnWidth(i + 1, widths[c]));
   formatRows_(sh);
   syncNoteBoxes_(sh);
@@ -493,7 +493,7 @@ function buildDayTab_(s, d) {
   s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   s.getRange(2, DAY_COLS.indexOf('Egyéb kérés') + 1, s.getMaxRows() - 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP).setVerticalAlignment('top');
   s.getRange(2, 1, s.getMaxRows() - 1, 1).setNumberFormat('@');
-  [80, 170, 80, 140, 260, 160, 300].forEach((w, i) => s.setColumnWidth(i + 1, w));
+  [80, 170, 80, 140, 260, 160, 170].forEach((w, i) => s.setColumnWidth(i + 1, w));
   const mail = s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1);
   s.setConditionalFormatRules([SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied(`=REGEXMATCH(${mail.getCell(1, 1).getA1Notation()},"^${NOTE_MARK}")`).setBackground(NOTE_BG).setBold(true).setRanges([mail]).build(),
@@ -574,7 +574,8 @@ const MAIL = {
   EVERY_MIN: 10,       // milyen gyakran nézze (perc)
   DAYS: 30,            // az elmúlt ennyi nap leveleit nézi
   MAX_THREADS: 150,    // egyszerre legfeljebb ennyi levelezést (a Gmail napi keretének kímélése)
-  SNIPPET: 40          // ennyi karakter a levél elejéből a cellában
+  SNIPPET: 40,         // ennyi karakter a levél elejéből (rövid)
+  BOX: 600             // ennyi karakter a felugró megjegyzésben
 };
 const MAIL_BG = '#dbe9fb', NOTE_BG = '#fde7c3';
 const MAIL_DONE = 'mailok_';   // Script property: <kulcs> → eddig az időpontig (ms) kezelve
@@ -599,10 +600,9 @@ function guestNote_(v) {
   if (s.indexOf('⚠') === 0) { const k = s.indexOf(' | '); s = k < 0 ? '' : s.slice(k + 3).trim(); }
   return s;
 }
-function noteFlag_(note) {
-  const n = String(note).replace(/\s+/g, ' ');
-  return `${NOTE_MARK} Válaszra vár · 备注待回复: ${n.length > 60 ? n.slice(0, 59) + '…' : n}`;
-}
+// a cellában csak a rövid állapot; a részletek (a kérés teljes szövege) a felugró megjegyzésben
+function noteFlag_() { return `${NOTE_MARK} Válaszra vár · 待回复`; }
+function noteFlagBox_(note) { return `Kérés · 客人备注:\n${String(note).trim()}`; }
 // a szkript saját, automatikus levelei (ezek nem számítanak „válasznak”)
 function autoSubjects_() {
   const out = new Set();
@@ -641,7 +641,7 @@ function menuReply() {
   const req = guestNote_(get('Egyéb kérés'));
   const ctx = [`${b.name} · ${fmtDate_(b.dateObj, 'hu')} ${b.time} · ${b.guests} fő · ${b.lang.toUpperCase()}`];
   if (req) ctx.push(`Kérés · 备注: „${req}”`);
-  if (threadId) ctx.push(`Levél · 客人邮件: ${String(cell.getValue()).replace(/^✉\s*/, '')}`);
+  if (threadId) ctx.push(`Levél · 客人邮件: ${String(cell.getNote() || '').replace(/\s+/g, ' ').slice(0, 300)}`);
   const p = ui.prompt('✉ Válasz a vendégnek · 回复客人',
     ctx.join('\n') + `\n\nÍrja be a választ (${b.lang === 'en' ? 'angolul' : 'magyarul'}) · 写回复（${b.lang === 'en' ? '英文' : '匈牙利文'}）：\n` +
     'A megszólítást, a foglalás adatait és az aláírást a levél automatikusan tartalmazza. · 称呼、订单信息和落款会自动加上。', ui.ButtonSet.OK_CANCEL);
@@ -659,7 +659,7 @@ function menuReply() {
   const props = PropertiesService.getScriptProperties(), now = String(Date.now());
   props.setProperty(mailKey_(get('Azonosító'), b.email), now);
   props.setProperty(noteKey_(get('Azonosító'), b.email), now);
-  cell.clearContent();
+  cell.clearContent().clearNote();
   SpreadsheetApp.getActive().toast('Elküldve · 已发送', 'Válasz', 4);
 }
 
@@ -708,7 +708,7 @@ function menuMailDone() {
   v.forEach((r, i) => {
     props.setProperty(mailKey_(r[C['Azonosító'] - 1], r[C['Email'] - 1]), now);
     props.setProperty(noteKey_(r[C['Azonosító'] - 1], r[C['Email'] - 1]), now);
-    sh.getRange(top + i, C['Levél']).clearContent();
+    sh.getRange(top + i, C['Levél']).clearContent().clearNote();
   });
   SpreadsheetApp.getActive().toast('Kész · 已标记为处理', 'Levél', 4);
 }
@@ -792,30 +792,36 @@ function checkMail() {
     });
 
     // csak a változott cellákat írjuk át
+    // a cellában rövid állapot (✉ / 📝), a részletek felugró megjegyzésben (rákattintva látszik)
     const col = sh.getRange(2, C['Levél'], rows.length, 1);
     const cur = col.getRichTextValues();
+    const curNotes = col.getNotes();
     let count = 0;
     rows.forEach((r, i) => {
       const h = hit[i];
       const now = cur[i][0], nowText = now ? now.getText() : '', nowLink = now ? now.getLinkUrl() : null;
+      const nowNote = curNotes[i][0];
       if (!h && notes[i] != null) {                  // nincs új levél, de a kérés még válaszra vár
         count++;
-        const text = noteFlag_(notes[i]);
+        const text = noteFlag_(), box = noteFlagBox_(notes[i]);
         if (nowText !== text || nowLink) col.getCell(i + 1, 1).setValue(text);
+        if (nowNote !== box) col.getCell(i + 1, 1).setNote(box);
         return;
       }
-      if (!h) { if (nowText) col.getCell(i + 1, 1).clearContent(); return; }
+      if (!h) { if (nowText || nowNote) col.getCell(i + 1, 1).clearContent().clearNote(); return; }
       count++;
       // authuser: ha a böngészőben több Google-fiók van (vagy még nincs belépve), a bolt fiókjába visz / bejelentkezést kér
       const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(me)}#all/${h.threadId}`;
       const stamp = Utilities.formatDate(new Date(h.date), 'Europe/Budapest', 'MM.dd HH:mm');
       // ugyanaz a levél már ki van írva: nem nyúlunk hozzá (és nem olvassuk újra a levél szövegét)
-      const head = `✉ Új levél · 新邮件 ${stamp}`;
-      if (nowLink === link && nowText.indexOf(head) === 0) return;
-      const text = `${head} · ${snippet_(h.msg)}`;
+      const text = '✉ Új levél · 新邮件';
+      const boxHead = `${stamp} · ${addr_(h.msg.getFrom())}`;
+      if (nowLink === link && nowText === text && String(nowNote).indexOf(boxHead) === 0) return;
       // kattintható, de ne legyen kék aláhúzott (olvashatóbb); a háttérszínt a feltételes formázás adja
       const plain = SpreadsheetApp.newTextStyle().setUnderline(false).setForegroundColor('#1d1b18').build();
-      col.getCell(i + 1, 1).setRichTextValue(SpreadsheetApp.newRichTextValue().setText(text).setLinkUrl(link).setTextStyle(plain).build());
+      const c = col.getCell(i + 1, 1);
+      c.setRichTextValue(SpreadsheetApp.newRichTextValue().setText(text).setLinkUrl(link).setTextStyle(plain).build());
+      c.setNote(`${boxHead}\n${String(h.msg.getSubject() || '')}\n\n${snippet_(h.msg, MAIL.BOX)}\n\n(Kattintson a linkre a teljes levélhez · 点链接看完整邮件)`);
     });
 
     syncNoteBoxes_(sh, rows);
@@ -831,7 +837,8 @@ function addr_(from) {
 }
 
 // a levél eleje, az idézett előzmények nélkül
-function snippet_(m) {
+function snippet_(m, max) {
+  max = max || MAIL.SNIPPET;
   const lines = String(m.getPlainBody() || '').split(/\r?\n/);
   const out = [];
   for (const l of lines) {
@@ -843,10 +850,10 @@ function snippet_(m) {
         /(wrote|írta|写道|schrieb|a écrit|escribió|scrisse|napisał|napsal)\s*[:：]?\s*$/i.test(t) ||
         /^(On|Am|Le|El|Il) .*\d{4}/.test(t)) break;
     if (t) out.push(t);
-    if (out.join(' ').length > MAIL.SNIPPET) break;
+    if (out.join('\n').length > max) break;
   }
-  let s = out.join(' ').replace(/\s+/g, ' ') || String(m.getSubject() || '');
-  if (s.length > MAIL.SNIPPET) s = s.slice(0, MAIL.SNIPPET - 1) + '…';
+  let s = (max > MAIL.SNIPPET ? out.join('\n') : out.join(' ').replace(/\s+/g, ' ')) || String(m.getSubject() || '');
+  if (s.length > max) s = s.slice(0, max - 1) + '…';
   return s;
 }
 
