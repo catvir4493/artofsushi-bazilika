@@ -588,6 +588,9 @@
   ['input', 'change', 'blur'].forEach(e => date.addEventListener(e, syncDate));
   syncDate();
   date.min = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const far = new Date(today); far.setDate(far.getDate() + 180); // a szerver is legfeljebb 180 napot fogad el
+  date.max = `${far.getFullYear()}-${pad(far.getMonth() + 1)}-${pad(far.getDate())}`;
+  const formShown = Date.now(); // robotszűrés: 3 mp-en belül beküldött űrlapot a szerver eldob
   // időpontok félóránként, nyitástól zárás előtt 2 óráig
   for (let x = Math.ceil(CONFIG.OPEN_HOUR * 2) / 2; x <= CONFIG.CLOSE_HOUR - 2; x += .5) {
     {
@@ -653,7 +656,7 @@ Nyelv: ${T('langName')}`;
           body: JSON.stringify({
             name: data.name, email: data.email, phone: data.phone, date: data.date, time: data.time,
             guests, note: data.note || '', rid, lang: window.AOS_I18N ? AOS_I18N.lang : 'hu',
-            website: data.website || '', turnstile: data['cf-turnstile-response'] || ''
+            website: data.website || '', turnstile: data['cf-turnstile-response'] || '', t: Date.now() - formShown
           })
         });
         const out = await res.json().catch(() => ({}));
@@ -671,6 +674,7 @@ Nyelv: ${T('langName')}`;
     } catch (err) {
       msg.classList.add('err');
       msg.textContent = T('fail', CONFIG.PHONE);
+      if (window.turnstile) try { turnstile.reset(); } catch {} // a Turnstile-jegy egyszer használható: újrapróbáláshoz új kell
     } finally {
       sending = false;
       submitBtn.disabled = false; submitBtn.removeAttribute('aria-busy');

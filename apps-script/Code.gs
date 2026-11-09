@@ -19,7 +19,12 @@ const CFG = {
   PHONE: '+36 30 516 1606',
   SITE: 'https://artofsushibp.hu/bazilika',
   DAY_TABS: 7,
-  MAX_GUESTS: 30
+  MAX_GUESTS: 30,
+  MAX_DAYS_AHEAD: 180,     // legfeljebb ennyi nappal előre lehet foglalni
+  MAX_PER_HOUR: 20,        // összesen ennyi új foglalás óránként (védi a napi ~100 e-mailes Gmail-keretet)
+  MAX_PER_GUEST_DAY: 3,    // ugyanarról az e-mail címről / telefonszámról naponta legfeljebb ennyi
+  MIN_FILL_MS: 3000,       // ennél gyorsabban kitöltött űrlap = robot
+  BACKUP_KEEP_DAYS: 14     // a „Mentés 备份” biztonsági lapok ennyi nap után törlődnek (személyes adatok!)
 };
 
 // Az oszlopok sorrendje a „Foglalások” lapon (az utolsó három rejtett)
@@ -51,10 +56,13 @@ function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k
    ========================================================= */
 function doPost(e) {
   try {
-    const d = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const raw = (e && e.postData && e.postData.contents) || '{}';
+    if (raw.length > 5000) return json_({ ok: false, error: 'invalid' });
+    const d = JSON.parse(raw);
 
-    // csapda mező: emberek nem töltik ki
+    // csapda mező: emberek nem töltik ki; és ember nem tölti ki 3 mp alatt — a robot „sikert” lát, de nem rögzítünk semmit
     if (d.website) return json_({ ok: true });
+    if (d.t != null && Number(d.t) < CFG.MIN_FILL_MS) return json_({ ok: true });
 
     const secret = prop_('TURNSTILE_SECRET');
     if (secret && !verifyTurnstile_(secret, d.turnstile)) return json_({ ok: false, error: 'captcha' });
@@ -70,17 +78,19 @@ function doPost(e) {
       // ugyanaz a foglalás még egyszer (dupla kattintás, újraküldés, újratöltés után): nem lesz új sor, nincs új e-mail
       const dup = findDuplicate_(sh, b);
       if (dup.id) return json_({ ok: true, id: dup.id, duplicate: true });
+      // tömeges / ismételt beküldés ellen (a Gmail napi kerete véges, és a vendégnek automatikus levél megy)
+      if (!allow_(b)) return json_({ ok: false, error: 'limit' });
       // ugyanaz a vendég ugyanarra a napra más időpontra: rögzítjük, de jelöljük
       if (dup.otherTimes.length) b.flag = `⚠ Ugyanaz a vendég aznap már: ${dup.otherTimes.join(', ')} · 同一客人当天已订 ${dup.otherTimes.join(', ')}`;
       const row = new Array(COLS.length).fill('');
       const put = (k, v) => { row[C[k] - 1] = v; };
       put('Dátum', b.dateObj);
       put('Időpont', b.time);
-      put('Név', b.name);
+      put('Név', cell_(b.name));
       put('Létszám', b.guests);
       put('Telefon', "'" + b.phone); // szövegként, különben a „+36…” képletnek látszik
-      put('Email', b.email);
-      put('Egyéb kérés', b.flag ? b.flag + (b.note ? ' | ' + b.note : '') : b.note);
+      put('Email', cell_(b.email));
+      put('Egyéb kérés', cell_(b.flag ? b.flag + (b.note ? ' | ' + b.note : '') : b.note));
       put('Állapot', STATUS.NEW);
       put('Beérkezett', new Date());
       put('Nyelv', b.lang.toUpperCase());
@@ -91,8 +101,9 @@ function doPost(e) {
       ensureDayTabs_();
     } finally { lock.releaseLock(); }
 
-    notifyRestaurant_(b);
-    sendGuest_('received', b);
+    // a foglalás már mentve van: egy e-mail hiba (pl. elfogyott a napi keret) ne jelenjen meg hibaként a vendégnek
+    try { notifyRestaurant_(b); } catch (err) { console.error('notify', err); }
+    try { if (MailApp.getRemainingDailyQuota() > 3) sendGuest_('received', b); } catch (err) { console.error('guest', err); }
     return json_({ ok: true, id: b.id });
   } catch (err) {
     console.error(err);
@@ -105,6 +116,30 @@ function doGet() { return json_({ ok: true, service: 'booking' }); }
 function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
+
+// Táblázat-cellába írt szöveg: ha =, +, -, @ jellel kezdődik, a Google Táblázatok képletként futtatná
+// (pl. =IMPORTXML(...) a vendégadatok kiszivárogtatására) — az elé tett ' miatt sima szöveg marad (nem látszik).
+function cell_(v) {
+  const s = String(v == null ? '' : v);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
+
+// Egyszerű korlát CacheService-szel (az Apps Script nem látja a látogató IP-címét)
+function allow_(b) {
+  const cache = CacheService.getScriptCache();
+  const hourKey = 'h' + Utilities.formatDate(new Date(), 'Europe/Budapest', 'yyyyMMddHH');
+  const dayTag = Utilities.formatDate(new Date(), 'Europe/Budapest', 'yyyyMMdd');
+  const keys = [hourKey, 'e' + dayTag + b.email.toLowerCase(), 'p' + dayTag + phoneKey_(b.phone)]
+    .map(k => Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, k)).slice(0, 40));
+  const got = cache.getAll(keys);
+  const n = keys.map(k => Number(got[k] || 0));
+  if (n[0] >= CFG.MAX_PER_HOUR || n[1] >= CFG.MAX_PER_GUEST_DAY || n[2] >= CFG.MAX_PER_GUEST_DAY) return false;
+  const put = {}; keys.forEach((k, i) => { put[k] = String(n[i] + 1); });
+  cache.putAll(put, 6 * 3600); // legfeljebb 6 óra a CacheService-ben
+  return true;
+}
+
+const URL_RE = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|ru|cn|xyz|top|info|io|link|click)\b)/i;
 
 function verifyTurnstile_(secret, token) {
   if (!token) return false;
@@ -121,13 +156,17 @@ function clean_(d) {
   const date = s(d.date, 10), time = s(d.time, 5), note = s(d.note, 500);
   const guests = parseInt(d.guests, 10);
   const lang = d.lang === 'en' ? 'en' : 'hu';
-  if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || phone.replace(/\D/g, '').length < 6) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  if (!name || URL_RE.test(name) || /[<>]/.test(name)) return null;  // névben nincs link (spam a vendégnek küldött levélben)
+  if (!/^[^@\s<>",;]+@[^@\s<>"',;]+\.[a-z]{2,}$/i.test(email)) return null;
+  if (!/^[\d\s()+\-./]+$/.test(phone) || phone.replace(/\D/g, '').length < 6) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
   if (!(guests >= 1 && guests <= CFG.MAX_GUESTS)) return null;
   const [y, m, dd] = date.split('-').map(Number);
   const dateObj = new Date(y, m - 1, dd);
+  if (dateObj.getMonth() !== m - 1 || dateObj.getDate() !== dd) return null;  // pl. 2026-02-31
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  if (dateObj < today) return null;
+  const maxDay = new Date(today); maxDay.setDate(maxDay.getDate() + CFG.MAX_DAYS_AHEAD);
+  if (dateObj < today || dateObj > maxDay) return null;
   // az űrlap saját azonosítót küld (ugyanaz marad újrapróbálkozáskor) → így ugyanaz a kérés csak egyszer kerül be
   const rid = String(d.rid || '').toUpperCase();
   const id = /^[A-Z0-9]{8,16}$/.test(rid) ? rid : Utilities.getUuid().slice(0, 8).toUpperCase();
@@ -175,7 +214,8 @@ function esc_(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<'
 function sendGuest_(kind, b) {
   const t = TPL[kind][b.lang], l = LBL[b.lang];
   const rows = [[l.date, fmtDate_(b.dateObj, b.lang)], [l.time, b.time], [l.guests, l.g(b.guests)], [l.addr, CFG.ADDRESS]];
-  if (b.note && kind === 'received') rows.push([l.note, b.note]);
+  // a megjegyzést csak akkor tesszük a levélbe, ha nincs benne link (különben bárki „reklámlevelet” küldethetne velünk)
+  if (b.note && kind === 'received' && !URL_RE.test(b.note)) rows.push([l.note, b.note]);
   const plain = [l.hello(b.name), '', t.lead, ...rows.map(r => `${r[0]}: ${r[1]}`), '', `${t.foot} ${CFG.PHONE}`, '', l.bye, CFG.RESTAURANT, CFG.SITE].join('\n');
   const html = `
   <div style="font-family:Georgia,serif;color:#1d1b18;max-width:560px;margin:0 auto;padding:24px">
@@ -371,7 +411,18 @@ function daily() {
       if (d instanceof Date && d < t0) sh.deleteRow(i + 2);
     }
   }
+  dropOldBackups_();
   ensureDayTabs_();
+}
+
+// a „Mentés 备份 2026-11-07 10.15” lapok régi foglalásokat (személyes adatokat) tartalmaznak: néhány nap után törlés
+function dropOldBackups_() {
+  const ss = SpreadsheetApp.getActive();
+  const limit = today_(); limit.setDate(limit.getDate() - CFG.BACKUP_KEEP_DAYS);
+  ss.getSheets().forEach(s => {
+    const m = s.getName().match(/^Mentés 备份 (\d{4})-(\d{2})-(\d{2})/);
+    if (m && new Date(+m[1], m[2] - 1, +m[3]) < limit && ss.getSheets().length > 1) ss.deleteSheet(s);
+  });
 }
 
 // a következő 7 nap lapjai: a régieket törli, a hiányzókat létrehozza, sorrendbe teszi
