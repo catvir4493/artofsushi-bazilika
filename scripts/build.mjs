@@ -58,8 +58,8 @@ C.calc = {
   span: Math.round(closeH - openH),
   duration_rule: t(`Az önkiszolgáló étkezés időtartama legfeljebb ${prices.duration} óra.`, `All-you-can-eat dining is limited to ${prices.duration} hours per table.`),
   service_rule: t(`${prices.service}% szervizdíjat számolunk fel.`, `A ${prices.service}% service charge is added to the bill.`),
-  meta: t(`Art of Sushi Bazilika – korlátlan prémium sushi a Szent István-bazilika mellett. Budapest, Sas u. 4, 1051. Nyitva ${everyDay ? 'minden nap' : info.days.hu} ${info.open}–${info.close}. Asztalfoglalás: ${info.phone}.`,
-    `Art of Sushi Bazilika – unlimited premium sushi beside St Stephen’s Basilica. Budapest, Sas u. 4, 1051. Open ${everyDay ? 'daily' : info.days.en || info.days.hu} ${info.open}–${info.close}. Reservations: ${info.phone}.`),
+  meta: t(`Art of Sushi Bazilika – korlátlan (all you can eat) prémium sushi étterem a Szent István-bazilika mellett. Budapest, Sas u. 4, 1051. Nyitva ${everyDay ? 'minden nap' : info.days.hu} ${info.open}–${info.close}. Asztalfoglalás online vagy: ${info.phone}.`,
+    `Art of Sushi Bazilika – all-you-can-eat premium sushi restaurant beside St Stephen’s Basilica. Budapest, Sas u. 4, 1051. Open ${everyDay ? 'daily' : info.days.en || info.days.hu} ${info.open}–${info.close}. Book online or call ${info.phone}.`),
   child: `${huNum(prices.child)} Ft`,
   count: String((C.menu.categories || []).length).padStart(2, '0'),
   gcount: String((C.gallery.images || []).length).padStart(2, '0')
@@ -200,7 +200,7 @@ for (const p of PAGES) {
   // nyitvatartás és telefon a JS-nek, a strukturált adatnak
   html = html.replace(/<html([^>]*)>/, (m, a) => `<html${a} data-open="${info.open}" data-close="${info.close}" data-phone="${escAttr(info.phone)}">`);
   html = html.replace(/"telephone":\s*"[^"]*"/, `"telephone": "${FILTERS.tel(info.phone).slice(4)}"`);
-  html = html.replace(/"opens":\s*"[^"]*","closes":\s*"[^"]*"/, `"opens": "${info.open}","closes": "${info.close === '00:00' ? '24:00' : info.close}"`);
+  html = html.replace(/"opens":\s*"[^"]*","closes":\s*"[^"]*"/, `"opens": "${info.open}","closes": "${info.close === '00:00' ? '23:59' : info.close}"`);
   fs.writeFileSync(path.join(OUT, p), html);
 }
 fs.writeFileSync(path.join(OUT, 'js', 'content-i18n.js'),

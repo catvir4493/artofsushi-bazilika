@@ -17,7 +17,7 @@ const CFG = {
   RESTAURANT: 'Art of Sushi Bazilika',
   ADDRESS: 'Sas u. 4, 1051 Budapest',
   PHONE: '+36 30 516 1606',
-  SITE: 'https://artofsushibp.hu/bazilika.html',
+  SITE: 'https://artofsushibp.hu/bazilika',
   DAY_TABS: 7,
   MAX_GUESTS: 30
 };
