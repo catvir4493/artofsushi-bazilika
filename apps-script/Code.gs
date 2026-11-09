@@ -375,6 +375,7 @@ function formatRows_(sh) {
   sh.getRange(2, C['Időpont'], n, 1).setNumberFormat('@');
   sh.getRange(2, C['Telefon'], n, 1).setNumberFormat('@');
   sh.getRange(2, C['Beérkezett'], n, 1).setNumberFormat('yyyy-mm-dd hh:mm');
+  sh.getRange(2, C['Levél'], n, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);   // ne lógjon át a szomszéd oszlopokra
 }
 
 // dátum, majd időpont szerint
@@ -486,6 +487,7 @@ function buildDayTab_(s, d) {
     `=IFERROR(SORT(FILTER({${DAY_COLS.map(col).join(',')}},${col('Dátum')}=${day},${col('Állapot')}<>"${STATUS.NO}"),1,TRUE),"Nincs foglalás · 暂无订单")`);
   s.setFrozenRows(1);
   s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length).setHorizontalAlignment('left');
+  s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   s.getRange(2, 1, s.getMaxRows() - 1, 1).setNumberFormat('@');
   [80, 170, 80, 140, 260, 160, 300].forEach((w, i) => s.setColumnWidth(i + 1, w));
   const mail = s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1);
@@ -568,7 +570,7 @@ const MAIL = {
   EVERY_MIN: 10,       // milyen gyakran nézze (perc)
   DAYS: 30,            // az elmúlt ennyi nap leveleit nézi
   MAX_THREADS: 150,    // egyszerre legfeljebb ennyi levelezést (a Gmail napi keretének kímélése)
-  SNIPPET: 90          // ennyi karakter a levél elejéből a cellában
+  SNIPPET: 40          // ennyi karakter a levél elejéből a cellában
 };
 const MAIL_BG = '#dbe9fb', NOTE_BG = '#fde7c3';
 const MAIL_DONE = 'mailok_';   // Script property: <kulcs> → eddig az időpontig (ms) kezelve
@@ -718,9 +720,12 @@ function checkMail() {
       const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(me)}#all/${h.threadId}`;
       const stamp = Utilities.formatDate(new Date(h.date), 'Europe/Budapest', 'MM.dd HH:mm');
       // ugyanaz a levél már ki van írva: nem nyúlunk hozzá (és nem olvassuk újra a levél szövegét)
-      if (nowLink === link && nowText.indexOf(`✉ ${stamp}`) === 0) return;
-      const text = `✉ ${stamp} · ${snippet_(h.msg)}`;
-      col.getCell(i + 1, 1).setRichTextValue(SpreadsheetApp.newRichTextValue().setText(text).setLinkUrl(link).build());
+      const head = `✉ Új levél · 新邮件 ${stamp}`;
+      if (nowLink === link && nowText.indexOf(head) === 0) return;
+      const text = `${head} · ${snippet_(h.msg)}`;
+      // kattintható, de ne legyen kék aláhúzott (olvashatóbb); a háttérszínt a feltételes formázás adja
+      const plain = SpreadsheetApp.newTextStyle().setUnderline(false).setForegroundColor('#1d1b18').build();
+      col.getCell(i + 1, 1).setRichTextValue(SpreadsheetApp.newRichTextValue().setText(text).setLinkUrl(link).setTextStyle(plain).build());
     });
 
     pruneMailDone_(props, all, keys);
@@ -741,7 +746,11 @@ function snippet_(m) {
   for (const l of lines) {
     const t = l.trim();
     if (/^>/.test(t)) continue;
-    if (/^(On .+ wrote:|.+ írta:|-{2,}\s*Original Message|Feladó:|From:)/i.test(t)) break;   // innen idézet jön
+    // innen az előző levél idézete jön: „On … wrote:”, „… írta:”, „… 写道：”, vagy egy sor „Név <cim@…>” címmel
+    if (/^(-{2,}\s*Original Message|Feladó:|From:|发件人[:：])/i.test(t) ||
+        /<[^<>\s]+@[^<>\s]+>/.test(t) ||
+        /(wrote|írta|写道|schrieb|a écrit|escribió|scrisse|napisał|napsal)\s*[:：]?\s*$/i.test(t) ||
+        /^(On|Am|Le|El|Il) .*\d{4}/.test(t)) break;
     if (t) out.push(t);
     if (out.join(' ').length > MAIL.SNIPPET) break;
   }
