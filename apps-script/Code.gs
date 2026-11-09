@@ -633,7 +633,8 @@ function checkMail() {
       const now = cur[i][0], nowText = now ? now.getText() : '', nowLink = now ? now.getLinkUrl() : null;
       if (!h) { if (nowText) col.getCell(i + 1, 1).clearContent(); return; }
       count++;
-      const link = `https://mail.google.com/mail/u/${me}/#all/${h.threadId}`;
+      // authuser: ha a böngészőben több Google-fiók van (vagy még nincs belépve), a bolt fiókjába visz / bejelentkezést kér
+      const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(me)}#all/${h.threadId}`;
       const stamp = Utilities.formatDate(new Date(h.date), 'Europe/Budapest', 'MM.dd HH:mm');
       // ugyanaz a levél már ki van írva: nem nyúlunk hozzá (és nem olvassuk újra a levél szövegét)
       if (nowLink === link && nowText.indexOf(`✉ ${stamp}`) === 0) return;
