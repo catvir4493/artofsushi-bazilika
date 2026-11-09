@@ -191,6 +191,7 @@
   // a Pages CMS-ben szerkesztett szövegek angol párjai (js/content-i18n.js, a build készíti)
   Object.assign(TEXT, window.AOS_TEXT_EXTRA || {});
   Object.assign(ATTR, window.AOS_TEXT_EXTRA || {});
+  Object.assign(META, window.AOS_TEXT_EXTRA || {});
 
   /* ---------- Működés ---------- */
   const root = document.documentElement;
