@@ -49,6 +49,9 @@ const STATUS_COLORS = { 'Új 新订单': '#fde7c3', 'Visszaigazolva 已确认': 
 const DAY_TAB = /^\d{2}\.\d{2}$/;      // pl. „11.08”
 const OLD_TABS = ['Ma', 'Holnap', 'Ma 今天', 'Holnap 明天', 'Régi sorok 旧行'];
 const BACKUP = 'Törölt 已删除';         // rejtett lap: az automatikusan törölt régi foglalások másolata
+// könnyebb olvasás: csíkos sorok, kijelölt sor kiemelése (onSelectionChange → rejtett „_sel” lap), vastag vonal napváltáskor
+const ZEBRA_BG = '#f1efea', SEL_BG = '#fff3b0', DAY_LINE = '#5b554b', ROW_H = 26;
+const SEL = '_sel';
 const HEAD_BG = '#0c0b0a', HEAD_FG = '#e8dcc4';
 
 /* ---------- Beállítások (Script properties) ----------
@@ -415,6 +418,7 @@ function cancelEarlierSameDay_(sh, r) {
     done.push(fmtTime_(get(v, 'Időpont')));
   });
   old.sort((a, b) => b - a).forEach(i => sh.deleteRow(i + 2));
+  drawDayLines_(sh);
   bk.getRange(2, C['Telefon'], Math.max(bk.getLastRow() - 1, 1), 1).setNumberFormat('@');
   return done;
 }
@@ -464,12 +468,19 @@ function setup() {
 
   const st = sh.getRange(2, C['Állapot'], sh.getMaxRows() - 1, 1);
   st.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(Object.values(STATUS), true).build());
-  const colors = Object.entries(STATUS_COLORS);
+  const colors = statusColors_();
   const mail = sh.getRange(2, C['Levél'], sh.getMaxRows() - 1, 1);
-  sh.setConditionalFormatRules(colors.map(([t, c]) =>
-    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t).setBackground(c).setRanges([st]).build())
+  const all = sh.getRange(2, 1, sh.getMaxRows() - 1, COLS.length);
+  sh.setConditionalFormatRules([selRule_(CFG.SHEET, all)].concat(colors.map(([t, c]) =>
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t).setBackground(c).setRanges([st]).build()))
     .concat(SpreadsheetApp.newConditionalFormatRule().whenTextStartsWith(NOTE_MARK).setBackground(NOTE_BG).setBold(true).setRanges([mail]).build())
-    .concat(SpreadsheetApp.newConditionalFormatRule().whenCellNotEmpty().setBackground(MAIL_BG).setBold(true).setRanges([mail]).build()));
+    .concat(SpreadsheetApp.newConditionalFormatRule().whenCellNotEmpty().setBackground(MAIL_BG).setBold(true).setRanges([mail]).build())
+    .concat(zebraRule_(all, colLetter_(C['Dátum']))));
+  sh.setRowHeights(2, sh.getMaxRows() - 1, ROW_H);
+  all.setVerticalAlignment('middle');
+  sh.getRange(2, C['Egyéb kérés'], sh.getMaxRows() - 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);   // a teljes szöveg a cella jegyzetében
+  selSheet_();
+  drawDayLines_(sh);
 
   // ritkán kell: Beérkezett, Nyelv, Azonosító elrejtve (jobb klikk az oszlopfejlécen → megjelenítés)
   sh.showColumns(1, COLS.length);
@@ -508,6 +519,51 @@ function formatRows_(sh) {
 function sortMain_(sh) {
   const last = sh.getLastRow();
   if (last > 2) sh.getRange(2, 1, last - 1, COLS.length).sort([{ column: C['Dátum'], ascending: true }, { column: C['Időpont'], ascending: true }]);
+  drawDayLines_(sh);
+}
+
+/* ---------- Olvashatóság ---------- */
+function colLetter_(n) { let s = ''; for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; }
+// a „Visszaigazolva” nem színes (az a megszokott állapot) — így az új (narancs) és az elutasított (piros) kiugrik
+function statusColors_() { return Object.entries(STATUS_COLORS).filter(([t]) => t !== STATUS.OK); }
+// minden második (kitöltött) sor halványszürke
+function zebraRule_(rng, keyCol) {
+  return SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(ISEVEN(ROW()),$${keyCol}2<>"")`)
+    .setBackground(ZEBRA_BG).setRanges([rng]).build();
+}
+// a kijelölt sor sárga (a „_sel” lapra az onSelectionChange írja be, melyik lapon melyik sor)
+function selRule_(name, rng) {
+  return SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(`=AND(INDIRECT("${SEL}!A1")="${name}",ROW()=INDIRECT("${SEL}!B1"))`)
+    .setBackground(SEL_BG).setRanges([rng]).build();
+}
+function selSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  let s = ss.getSheetByName(SEL);
+  if (!s) { s = ss.insertSheet(SEL, ss.getSheets().length); s.getRange('A1:B1').setValues([['', 0]]); s.hideSheet(); }
+  return s;
+}
+// egyszerű eseményindító: minden kattintásnál megjegyzi a kijelölt sort (csak ha változott)
+function onSelectionChange(e) {
+  try {
+    const r = e && e.range; if (!r) return;
+    const name = r.getSheet().getName();
+    if (name !== CFG.SHEET && !DAY_TAB.test(name)) return;
+    const row = r.getRow() >= 2 ? r.getRow() : 0;
+    const s = e.source.getSheetByName(SEL); if (!s) return;
+    const cur = s.getRange('A1:B1').getValues()[0];
+    if (cur[0] !== name || Number(cur[1]) !== row) s.getRange('A1:B1').setValues([[name, row]]);
+  } catch (err) { }
+}
+// vastag vonal minden nap utolsó sora alatt
+function drawDayLines_(sh) {
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  sh.getRange(2, 1, sh.getMaxRows() - 1, COLS.length).setBorder(false, false, false, false, false, false);
+  const ds = sh.getRange(2, C['Dátum'], last - 1, 1).getValues().map(x => x[0] instanceof Date ? ymd_(x[0]) : String(x[0]));
+  const L = colLetter_(COLS.length), a1 = [];
+  ds.forEach((d, i) => { if (d && d !== ds[i + 1]) a1.push(`A${i + 2}:${L}${i + 2}`); });
+  if (a1.length) sh.getRangeList(a1).setBorder(null, null, true, null, null, null, DAY_LINE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 }
 
 function today_() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
@@ -581,6 +637,7 @@ function daily() {
       const d = dates[i][0];
       if (d instanceof Date && d < t0) sh.deleteRow(i + 2);
     }
+    drawDayLines_(sh);
   }
   // automatikusan törölt régi foglalások mentése („Törölt”): a foglalás napja után ugyanúgy törlődik, mint a fő lapon
   const bk = SpreadsheetApp.getActive().getSheetByName(BACKUP);
@@ -646,11 +703,16 @@ function buildDayTab_(s, d) {
   const dst = s.getRange(2, DAY_COLS.indexOf('Állapot') + 1, s.getMaxRows() - 1, 1);
   const stA = dst.getCell(1, 1).getA1Notation();
   const mail = s.getRange(2, DAY_COLS.indexOf('Levél') + 1, s.getMaxRows() - 1, 1);
-  s.setConditionalFormatRules(Object.entries(STATUS_COLORS).map(([t, c]) => SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied(`=${stA}="${t}"`).setBackground(c).setRanges([dst]).build()).concat([SpreadsheetApp.newConditionalFormatRule()
+  const dall = s.getRange(2, 1, s.getMaxRows() - 1, DAY_COLS.length);
+  s.setRowHeights(2, s.getMaxRows() - 1, ROW_H);
+  dall.setVerticalAlignment('middle');
+  s.getRange(2, DAY_COLS.indexOf('Egyéb kérés') + 1, s.getMaxRows() - 1, 1).setVerticalAlignment('top');
+  s.setConditionalFormatRules([selRule_(s.getName(), dall)].concat(statusColors_().map(([t, c]) => SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(`=${stA}="${t}"`).setBackground(c).setRanges([dst]).build())).concat([SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied(`=REGEXMATCH(${mail.getCell(1, 1).getA1Notation()},"^${NOTE_MARK}")`).setBackground(NOTE_BG).setBold(true).setRanges([mail]).build(),
     SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied(`=LEFT(${mail.getCell(1, 1).getA1Notation()},1)="✉"`).setBackground(MAIL_BG).setBold(true).setRanges([mail]).build()]));
+    .whenFormulaSatisfied(`=LEFT(${mail.getCell(1, 1).getA1Notation()},1)="✉"`).setBackground(MAIL_BG).setBold(true).setRanges([mail]).build(),
+    zebraRule_(dall, colLetter_(DAY_COLS.indexOf('Időpont') + 1))]));
 }
 
 function ymd_(d) { return Utilities.formatDate(d, 'Europe/Budapest', 'yyyy-MM-dd'); }
@@ -706,6 +768,7 @@ function removeDuplicates() {
   const list = drop.map(i => `${ymd_(get(rows[i], 'Dátum'))} ${fmtTime_(get(rows[i], 'Időpont'))}  ${get(rows[i], 'Név')}`).join('\n');
   if (ui.alert(`${drop.length} ismétlődő sor törlése (az eredeti megmarad):\n将删除 ${drop.length} 条重复订单（保留原来那条）：\n\n${list}`, ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
   drop.sort((a, b) => b - a).forEach(i => sh.deleteRow(i + 2));
+  drawDayLines_(sh);
   SpreadsheetApp.getActive().toast(`${drop.length} törölve · 已删除`, 'Foglalás', 4);
 }
 
