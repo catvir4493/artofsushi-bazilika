@@ -10,17 +10,17 @@
         "hu": "Vékonyra szelt, nyers prémium hal – a tiszta íz, rizs nélkül.",
         "en": "Thinly sliced premium raw fish – pure flavour, no rice."
       },
-      "image": "images/ART02955.jpg"
+      "image": "images/chatgpt-image-20251227-135154.png"
     },
     {
       "name": {
-        "hu": "Sushi",
-        "en": "Sushi"
+        "hu": "Nigiri",
+        "en": "Nigiri"
       },
       "jp": "寿司",
       "text": {
-        "hu": "Nigiri, maki és látványos tekercsek, frissen a pult mögül.",
-        "en": "Nigiri, maki and showpiece rolls, made fresh behind the counter."
+        "hu": "Rizs, a tetején angolnával, főtt rákkal, lazaccal, tonhallal, tengeri sügérrel, kérgezett lazaccal, kérgezett tonhallal és flambírozott szósszal ",
+        "en": "Rice topped with eel, cooked shrimp, salmon, tuna, sea bass, seared salmon, seared tuna, and flambéed sauce "
       },
       "image": "images/ART02966.jpg"
     },
@@ -46,7 +46,7 @@
         "hu": "Forró wokban pirított tészták és ázsiai fogások.",
         "en": "Noodles and Asian dishes, tossed in a fiery wok."
       },
-      "image": "images/ART02988.jpg"
+      "image": "images/chatgpt-image-2026121-145405.png"
     }
   ],
   "chef": [

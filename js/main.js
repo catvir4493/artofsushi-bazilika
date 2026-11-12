@@ -677,7 +677,9 @@ Nyelv: ${T('langName')}`;
       if (window.turnstile) try { turnstile.reset(); } catch {}
     } catch (err) {
       msg.classList.add('err');
-      msg.textContent = T('fail', CONFIG.PHONE);
+      // a szerver megmondja, miért nem fogadta el: a vendég (és mi tesztelésnél) lássa az okát
+      const why = { limit: 'failLimit', captcha: 'failCaptcha', invalid: 'failInvalid' }[err && err.message];
+      msg.textContent = T(why || 'fail', CONFIG.PHONE) + (why ? '' : ` (${String(err && err.message || 'net').slice(0, 20)})`);
       if (window.turnstile) try { turnstile.reset(); } catch {} // a Turnstile-jegy egyszer használható: újrapróbáláshoz új kell
     } finally {
       sending = false;

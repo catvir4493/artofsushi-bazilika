@@ -172,6 +172,9 @@
       sent: (n, d, t, g, p) => `Köszönjük, ${n}! Foglalási kérését (${d}, ${t}, ${g} fő) elküldtük – hamarosan visszaigazoljuk. Sürgős esetben hívjon: ${p}.`,
       call: (n, d, t, g, p) => `Köszönjük, ${n}! A foglalás (${d}, ${t}, ${g} fő) véglegesítéséhez kérjük, hívjon minket: ${p}.`,
       fail: p => `Hiba történt a küldéskor. Kérjük, foglaljon telefonon: ${p}.`,
+      failLimit: p => `Ma már több foglalást küldött erről az e-mail címről vagy telefonszámról. További foglaláshoz kérjük, hívjon minket: ${p}.`,
+      failCaptcha: p => `A biztonsági ellenőrzés nem sikerült. Kérjük, töltse újra az oldalt, és küldje el ismét – vagy hívjon: ${p}.`,
+      failInvalid: p => `Kérjük, ellenőrizze az adatokat (e-mail, telefonszám, dátum – legfeljebb 180 nappal előre). Ha minden helyes, hívjon: ${p}.`,
       sending: 'Küldés folyamatban…',
       langName: 'magyar'
     },
@@ -183,6 +186,9 @@
       sent: (n, d, t, g, p) => `Thank you, ${n}! Your booking request (${d}, ${t}, ${g} ${g == 1 ? 'guest' : 'guests'}) has been sent – we will confirm it shortly. If it is urgent, please call ${p}.`,
       call: (n, d, t, g, p) => `Thank you, ${n}! To confirm your booking (${d}, ${t}, ${g} ${g == 1 ? 'guest' : 'guests'}), please call us on ${p}.`,
       fail: p => `Sorry, something went wrong. Please book by phone: ${p}.`,
+      failLimit: p => `You have already sent several bookings from this email address or phone number today. For another booking please call us on ${p}.`,
+      failCaptcha: p => `The security check did not succeed. Please reload the page and send it again – or call us on ${p}.`,
+      failInvalid: p => `Please check your details (email, phone number, date – at most 180 days ahead). If everything is correct, please call ${p}.`,
       sending: 'Sending…',
       langName: 'angol'
     }
