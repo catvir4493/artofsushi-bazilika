@@ -1,28 +1,34 @@
 {
   "images": [
     {
-      "image": "images/2-1.jpg"
+      "image": "images/gallery/g01.jpg"
     },
     {
-      "image": "images/162.png"
+      "image": "images/gallery/g02.jpg"
     },
     {
-      "image": "images/2-3.jpg"
+      "image": "images/gallery/g03.jpg"
     },
     {
-      "image": "images/2-4.jpg"
+      "image": "images/gallery/g04.jpg"
     },
     {
-      "image": "images/2-5.jpg"
+      "image": "images/gallery/g05.jpg"
     },
     {
-      "image": "images/2-6.jpg"
+      "image": "images/gallery/g06.jpg"
     },
     {
-      "image": "images/chatgpt-image-2026413-144522.png"
+      "image": "images/gallery/g07.jpg"
     },
     {
-      "image": "images/2-8.jpg"
+      "image": "images/gallery/g08.jpg"
+    },
+    {
+      "image": "images/gallery/g09.jpg"
+    },
+    {
+      "image": "images/gallery/g10.jpg"
     }
   ]
 }
