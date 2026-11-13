@@ -700,8 +700,16 @@ Nyelv: ${T('langName')}`;
     try { localStorage.setItem('aos-cookie', '1'); } catch {}
   });
 
+  /* ----- Étlap PDF: a látogató választott nyelve szerinti fájl ----- */
+  const setMenuPdf = () => {
+    const en = (window.AOS_I18N && window.AOS_I18N.lang) === 'en';
+    document.querySelectorAll('[data-pdf-hu]').forEach(a => { a.href = en ? a.dataset.pdfEn : a.dataset.pdfHu; });
+  };
+  setMenuPdf();
+
   /* ----- Nyelvváltás: a bontott szövegek újraépítése ----- */
   document.addEventListener('aos:lang', () => {
+    setMenuPdf();
     $$('.split').forEach(splitEl);
     if (fill) { wrap(fill); fillWords = $$('.sw', fill); }
     updateStatus();

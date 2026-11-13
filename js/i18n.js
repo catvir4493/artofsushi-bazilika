@@ -47,6 +47,8 @@
 
     // étlap
     'Étlapunk': 'Our menu',
+    'Teljes étlap megnyitása': 'Open the full menu',
+    'Étlap PDF · fotókkal': 'Menu PDF · with photos',
     'Fedezze fel friss, kiváló minőségű alapanyagokból gondosan elkészített sushi- és ázsiai ételeinket.':
       'Discover our sushi and Asian dishes, carefully prepared from fresh, top-quality ingredients.',
     'Szásimi': 'Sashimi',

@@ -15,3 +15,8 @@ https://:project.pages.dev/*
   X-Robots-Tag: noindex
 https://:version.:project.pages.dev/*
   X-Robots-Tag: noindex
+
+# az étlap PDF-ek: a böngésző saját PDF-nézője ne ütközzön a szigorú CSP-be
+/menu/*
+  ! Content-Security-Policy
+  Cache-Control: public, max-age=3600
