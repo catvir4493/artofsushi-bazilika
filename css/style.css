@@ -235,8 +235,7 @@ html:not(.js) .clip img{clip-path:none;transform:none}
 .dish__meta,.dish p{transition:opacity .8s var(--ease)}
 .dish:not(.is-active) .dish__meta,.dish:not(.is-active) p{opacity:0}
 .carousel__ui{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:46px}
-.menu__pdf{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:54px}
-.menu__pdf-note{font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;opacity:.55}
+.menu__pdf{display:flex;justify-content:center;margin-top:54px}
 .carousel__btn{width:54px;height:54px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--text);font-size:16px;font-weight:300;transition:background .5s,color .5s,border-color .5s,transform .5s var(--ease)}
 .carousel__btn:hover{background:var(--gold);border-color:var(--gold);color:var(--bg)}
 .carousel__dots{display:flex;gap:10px}

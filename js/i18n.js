@@ -43,12 +43,11 @@
       'From classic sushi and sashimi to creative Japanese dishes, our wide selection has something for every taste.',
     'óra korlátlan lakoma': 'hours of unlimited dining',
     'óra nyitvatartás, minden nap': 'hours open, every day',
-    'kategória, szásimitól a wokig': 'categories, from sashimi to wok',
+    'kategória, az előételektől a salátákig': 'categories, from starters to salads',
 
     // étlap
     'Étlapunk': 'Our menu',
     'Teljes étlap megnyitása': 'Open the full menu',
-    'Étlap PDF · fotókkal': 'Menu PDF · with photos',
     'Fedezze fel friss, kiváló minőségű alapanyagokból gondosan elkészített sushi- és ázsiai ételeinket.':
       'Discover our sushi and Asian dishes, carefully prepared from fresh, top-quality ingredients.',
     'Szásimi': 'Sashimi',

@@ -2,6 +2,30 @@
   "categories": [
     {
       "name": {
+        "hu": "Előételek",
+        "en": "Starters"
+      },
+      "jp": "前菜",
+      "text": {
+        "hu": "Könnyű, ízgazdag kezdés a lakoma előtt.",
+        "en": "A light, flavourful start to the feast."
+      },
+      "image": "images/ART02977.jpg"
+    },
+    {
+      "name": {
+        "hu": "Carpaccio & tatár",
+        "en": "Carpaccio & Tartare"
+      },
+      "jp": "カルパッチョ",
+      "text": {
+        "hu": "Vékonyra szelt carpaccio és finomra vágott tatár lazacból, tonhalból és tengeri sügérből.",
+        "en": "Thinly sliced carpaccio and finely chopped tartare of salmon, tuna and sea bass."
+      },
+      "image": "images/menu/c02.jpg"
+    },
+    {
+      "name": {
         "hu": "Szásimi",
         "en": "Sashimi"
       },
@@ -11,6 +35,18 @@
         "en": "Thinly sliced premium raw fish – pure flavour, no rice."
       },
       "image": "images/chatgpt-image-20251227-135154.png"
+    },
+    {
+      "name": {
+        "hu": "Tataki",
+        "en": "Tataki"
+      },
+      "jp": "たたき",
+      "text": {
+        "hu": "Lazac és tonhal, kívül egy pillanatra megpirítva, belül nyersen.",
+        "en": "Salmon and tuna, seared for a moment outside, raw within."
+      },
+      "image": "images/menu/c04.jpg"
     },
     {
       "name": {
@@ -26,27 +62,195 @@
     },
     {
       "name": {
-        "hu": "Előétel",
-        "en": "Starters"
+        "hu": "Gunkan & temaki",
+        "en": "Gunkan & Temaki"
       },
-      "jp": "前菜",
+      "jp": "軍艦",
       "text": {
-        "hu": "Könnyű, ízgazdag kezdés a lakoma előtt.",
-        "en": "A light, flavourful start to the feast."
+        "hu": "Halikrás gunkan, onigiri és kézzel tekert temaki.",
+        "en": "Gunkan crowned with roe, onigiri and hand-rolled temaki."
       },
-      "image": "images/ART02977.jpg"
+      "image": "images/menu/c06.jpg"
     },
     {
       "name": {
-        "hu": "Wok",
-        "en": "Wok"
+        "hu": "Sült maki",
+        "en": "Fried Maki"
       },
-      "jp": "炒め物",
+      "jp": "揚げ巻",
       "text": {
-        "hu": "Forró wokban pirított tészták és ázsiai fogások.",
-        "en": "Noodles and Asian dishes, tossed in a fiery wok."
+        "hu": "Tempurában ropogósra sütött tekercsek, melegen tálalva.",
+        "en": "Rolls fried crisp in tempura, served warm."
       },
-      "image": "images/chatgpt-image-2026121-145405.png"
+      "image": "images/menu/c07.jpg"
+    },
+    {
+      "name": {
+        "hu": "Uramaki",
+        "en": "Uramaki"
+      },
+      "jp": "裏巻",
+      "text": {
+        "hu": "Kívül rizs, belül nori: a klasszikus fordított tekercs.",
+        "en": "Rice outside, nori inside: the classic inside-out roll."
+      },
+      "image": "images/menu/c08.jpg"
+    },
+    {
+      "name": {
+        "hu": "Különleges tekercsek",
+        "en": "Special Rolls"
+      },
+      "jp": "特製巻",
+      "text": {
+        "hu": "Séfünk saját tekercsei, gazdag feltétekkel és szószokkal.",
+        "en": "Our chef's own rolls, with generous toppings and sauces."
+      },
+      "image": "images/menu/c09.jpg"
+    },
+    {
+      "name": {
+        "hu": "Fekete rizses tekercsek",
+        "en": "Black Rice Rolls"
+      },
+      "jp": "黒米巻",
+      "text": {
+        "hu": "Fekete rizsből készült tekercsek, látványos színnel.",
+        "en": "Rolls made with black rice, striking in colour."
+      },
+      "image": "images/menu/c10.jpg"
+    },
+    {
+      "name": {
+        "hu": "Hosomaki",
+        "en": "Hosomaki"
+      },
+      "jp": "細巻",
+      "text": {
+        "hu": "Vékony, egyszerű tekercsek egyetlen töltelékkel.",
+        "en": "Slim, simple rolls with a single filling."
+      },
+      "image": "images/menu/c11.jpg"
+    },
+    {
+      "name": {
+        "hu": "Poké",
+        "en": "Poké"
+      },
+      "jp": "ポケ",
+      "text": {
+        "hu": "Rizstál friss hallal, zöldségekkel és öntettel.",
+        "en": "Rice bowls with fresh fish, vegetables and dressing."
+      },
+      "image": "images/menu/c12.jpg"
+    },
+    {
+      "name": {
+        "hu": "Levesek",
+        "en": "Soups"
+      },
+      "jp": "汁物",
+      "text": {
+        "hu": "Misoleves és gulyásleves – meleg kezdés.",
+        "en": "Miso soup and goulash – a warm start."
+      },
+      "image": "images/menu/c13.jpg"
+    },
+    {
+      "name": {
+        "hu": "Párolt falatok",
+        "en": "Steamed"
+      },
+      "jp": "蒸し物",
+      "text": {
+        "hu": "Edamame, gyoza és siu mai, gőzben párolva.",
+        "en": "Edamame, gyoza and siu mai, gently steamed."
+      },
+      "image": "images/menu/c14.jpg"
+    },
+    {
+      "name": {
+        "hu": "Rántott & tempura",
+        "en": "Fried & Tempura"
+      },
+      "jp": "揚げ物",
+      "text": {
+        "hu": "Tempura, tavaszi tekercs, takoyaki és ropogós rántott falatok.",
+        "en": "Tempura, spring rolls, takoyaki and crisp fried bites."
+      },
+      "image": "images/menu/c15.jpg"
+    },
+    {
+      "name": {
+        "hu": "Rizstálak",
+        "en": "Rice Bowls"
+      },
+      "jp": "丼",
+      "text": {
+        "hu": "Gőzölgő rizs angolnával vagy rántott sertéskarajjal.",
+        "en": "Steaming rice topped with eel or a pork chop."
+      },
+      "image": "images/menu/c16.jpg"
+    },
+    {
+      "name": {
+        "hu": "Pirított rizs",
+        "en": "Fried Rice"
+      },
+      "jp": "炒飯",
+      "text": {
+        "hu": "Forró wokban pirított rizs zöldséggel, csirkével, tenger gyümölcseivel vagy fekete szarvasgombával.",
+        "en": "Rice tossed in a fiery wok with vegetables, chicken, seafood or black truffle."
+      },
+      "image": "images/menu/c17.jpg"
+    },
+    {
+      "name": {
+        "hu": "Udon",
+        "en": "Udon"
+      },
+      "jp": "うどん",
+      "text": {
+        "hu": "Vastag, puha udontészta wokban pirítva.",
+        "en": "Thick, soft udon noodles tossed in the wok."
+      },
+      "image": "images/menu/c20.jpg"
+    },
+    {
+      "name": {
+        "hu": "Teppanyaki",
+        "en": "Teppanyaki"
+      },
+      "jp": "鉄板",
+      "text": {
+        "hu": "Forró vaslapon sütött gyoza, nyárs, lazac, garnélarák és libamáj.",
+        "en": "Gyoza, skewers, salmon, prawns and foie gras from the hot iron plate."
+      },
+      "image": "images/menu/c21.jpg"
+    },
+    {
+      "name": {
+        "hu": "Meleg ételek",
+        "en": "Hot Dishes"
+      },
+      "jp": "料理",
+      "text": {
+        "hu": "Ázsiai meleg fogások marhából, csirkéből, garnélarákból és zöldségekből.",
+        "en": "Asian hot dishes of beef, chicken, prawns and vegetables."
+      },
+      "image": "images/menu/c22.jpg"
+    },
+    {
+      "name": {
+        "hu": "Saláták",
+        "en": "Salads"
+      },
+      "jp": "サラダ",
+      "text": {
+        "hu": "Friss saláta és wakame tengeri alga.",
+        "en": "Fresh salad and wakame seaweed."
+      },
+      "image": "images/menu/c23.jpg"
     }
   ],
   "chef": [

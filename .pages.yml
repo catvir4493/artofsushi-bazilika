@@ -66,7 +66,7 @@ content:
       - name: categories
         label: 菜单分类（轮播）
         type: object
-        list: { min: 1, max: 8, collapsible: { collapsed: true, summary: "{index}" } }
+        list: { min: 1, max: 30, collapsible: { collapsed: true, summary: "{index}" } }
         fields:
           - { name: name, label: 名称, component: bi }
           - { name: jp, label: 日文小字, type: string, description: "例如 寿司；新的日文字请告诉 Marcell，以便加进字体" }

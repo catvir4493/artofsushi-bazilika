@@ -168,7 +168,7 @@
   font-weight: 300;
   font-display: swap;
   src: url(NotoSerifJP-300-subset.woff2) format('woff2');
-  unicode-range: U+306e, U+3081, U+523a, U+524d, U+53f8, U+5bff, U+5dfb, U+7092, U+7269, U+82b8, U+83dc, U+8853, U+8eab, U+98ef, U+9ba8, U+9c3b, U+9f8d;
+  unicode-range: U+3046, U+304d, U+3052, U+3057, U+305f, U+3069, U+306e, U+3081, U+3093, U+30ab, U+30b1, U+30b5, U+30c0, U+30c1, U+30c3, U+30d1, U+30dd, U+30e7, U+30e9, U+30eb, U+4e3c, U+523a, U+524d, U+53f8, U+5bff, U+5dfb, U+63da, U+6599, U+677f, U+6c41, U+7092, U+7269, U+7279, U+7406, U+7c73, U+7d30, U+8266, U+82b8, U+83dc, U+84b8, U+8853, U+88cf, U+88fd, U+8eab, U+8ecd, U+9244, U+98ef, U+9ba8, U+9c3b, U+9ed2, U+9f8d;
 }
 /* csak az oldalon használt japán írásjegyek */
 @font-face {
@@ -177,5 +177,5 @@
   font-weight: 500;
   font-display: swap;
   src: url(NotoSerifJP-500-subset.woff2) format('woff2');
-  unicode-range: U+306e, U+3081, U+523a, U+524d, U+53f8, U+5bff, U+5dfb, U+7092, U+7269, U+82b8, U+83dc, U+8853, U+8eab, U+98ef, U+9ba8, U+9c3b, U+9f8d;
+  unicode-range: U+3046, U+304d, U+3052, U+3057, U+305f, U+3069, U+306e, U+3081, U+3093, U+30ab, U+30b1, U+30b5, U+30c0, U+30c1, U+30c3, U+30d1, U+30dd, U+30e7, U+30e9, U+30eb, U+4e3c, U+523a, U+524d, U+53f8, U+5bff, U+5dfb, U+63da, U+6599, U+677f, U+6c41, U+7092, U+7269, U+7279, U+7406, U+7c73, U+7d30, U+8266, U+82b8, U+83dc, U+84b8, U+8853, U+88cf, U+88fd, U+8eab, U+8ecd, U+9244, U+98ef, U+9ba8, U+9c3b, U+9ed2, U+9f8d;
 }
